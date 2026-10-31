@@ -9,7 +9,7 @@
 Free, private video calls in the browser. Peer to peer, no account, no server in the middle,
 and every effect worked out on your own device.
 
-[Live demo](https://klatch.netlify.app) · [Run your own](#run-your-own) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[Live demo](https://klatch-calls.netlify.app) · [Run your own](#run-your-own) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
 
 [![CI](https://github.com/rakeshmenon/klatch/actions/workflows/ci.yml/badge.svg)](https://github.com/rakeshmenon/klatch/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-14523d.svg)](LICENSE)
