@@ -1,0 +1,45 @@
+name: Bug report
+description: Something doesn't work as it should
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting. For security or privacy problems, please use the Security tab instead of a public issue.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the site and start a call
+        2. ...
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Chrome 131 on macOS 15, M2 MacBook Air
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - The public demo
+        - My own deployment
+        - Running locally
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console output or screenshots
+      description: Optional. Please blur faces and remove call links.
