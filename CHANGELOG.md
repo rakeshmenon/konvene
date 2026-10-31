@@ -4,6 +4,9 @@ All notable changes to Klatch. The format follows [Keep a Changelog](https://kee
 
 ## Unreleased
 
+- Fixed: a call between a Mac and an iPhone flickered between one and two people. Both browsers added their video at the same moment, Safari dropped the connection, and it reconnected in a loop. Now one side sends its video first and the other follows.
+- Added: a connection log for troubleshooting. Add `?debug` to any call link to see how each connection forms and why it ends.
+
 ## 1.0.0 (2026-10-31)
 
 First public release.

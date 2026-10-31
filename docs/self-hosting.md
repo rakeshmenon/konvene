@@ -68,6 +68,10 @@ Most calls connect directly. Some networks (strict offices, hotels, some mobile 
 
 **Static hosts:** set `KLATCH_TURN_URLS`, `KLATCH_TURN_USERNAME` and `KLATCH_TURN_CREDENTIAL`. These are visible in the page, so only use credentials created for this and limit them at the TURN provider.
 
+## Troubleshooting calls
+
+Add `?debug` to a call link (for example `https://your-site/abc-def-ghj?debug`) to show a connection log at the bottom of the page. It lists each connection attempt, the route it took (`host` means the same network, `srflx` a direct route through the internet, `relay` your TURN server), and why it ended. It stays on that device; use **Copy** to paste it into a bug report. If connections reach "checking" and then fail, the network needs a TURN relay.
+
 ## Staying up to date
 
 ```sh
