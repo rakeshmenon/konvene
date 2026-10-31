@@ -2,7 +2,7 @@
 #   docker build -t klatch .            (pass settings with --build-arg KLATCH_APP_ID=...)
 #   docker run -p 8080:80 klatch        then open http://localhost:8080
 # Containers have no /api/turn function; use KLATCH_TURN_* for a relay if you need one.
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci

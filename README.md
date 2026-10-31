@@ -51,7 +51,7 @@ Build settings are already in `netlify.toml` and `vercel.json`. Add settings lat
 
 ### On your computer
 
-Needs [Node.js](https://nodejs.org) 20 or newer.
+Needs [Node.js](https://nodejs.org) 22 or newer.
 
 ```sh
 git clone https://github.com/rakeshmenon/klatch

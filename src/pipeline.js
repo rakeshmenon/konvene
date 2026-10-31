@@ -70,15 +70,39 @@ export class Pipeline {
     this.stream = this.out.captureStream(30);
     this.applySettings(this.settings);
     this.running = true;
-    const tick = (now) => { if (!this.running) return; requestAnimationFrame(tick); this.frame(now); };
+    const tick = (now) => {
+      if (!this.running) return;
+      requestAnimationFrame(tick);
+      const before = this.last, t0 = performance.now();
+      this.frame(now);
+      if (this.last !== before) this.watchSpeed(performance.now() - t0);
+    };
     requestAnimationFrame(tick);
     // keep frames flowing to peers even when this tab is in the background
     this.bgTimer = setInterval(() => { if (document.hidden) this.frame(performance.now()); }, 66);
   }
 
+  // A computer that can't keep up at full HD gets a smaller picture instead of a stuttering one:
+  // if frames take longer than a 30 fps budget for a few seconds, step down to 1280, then 960 wide.
+  watchSpeed(ms) {
+    if (!this.camOn || this.away || this.W <= 960) { this.speed = null; return; }
+    const sp = this.speed || (this.speed = { n: 0, sum: 0 });
+    sp.n++;
+    if (sp.n <= 60) return; // let the models warm up first
+    sp.sum += ms;
+    if (sp.n < 150) return;
+    const avg = sp.sum / (sp.n - 60);
+    this.speed = null;
+    if (avg > 34) {
+      this.maxW = this.W > 1280 ? 1280 : 960;
+      console.info(`video: ${avg.toFixed(0)} ms per frame at ${this.W} wide, using ${this.maxW}`);
+      this.resize(this.video.videoWidth, this.video.videoHeight);
+    }
+  }
+
   // the processed picture is as sharp as the camera allows, up to 1920 wide (full HD)
   resize(w, h) {
-    const W = Math.min(1920, Math.round(w / 2) * 2), H = Math.round((W * h) / w / 2) * 2;
+    const W = Math.min(this.maxW || 1920, Math.round(w / 2) * 2), H = Math.round((W * h) / w / 2) * 2;
     if (W === this.W && H === this.H && this.fx) return;
     this.W = W; this.H = H;
     this.out.width = W; this.out.height = H;

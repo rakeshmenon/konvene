@@ -29,6 +29,8 @@ await a.waitForTimeout(1500);
 await shot(a, `${OUT}/01-greenroom.png`);
 const defaults = await a.evaluate(() => window.__gr.pipe.settings);
 ok(defaults.expressions === false && defaults.autoAway && defaults.autoLight && defaults.mutedHint && !defaults.autoFrame, `smart defaults (expressions off) ${JSON.stringify(defaults)}`);
+// Chromium's fake camera shows no face, so "step away" would pause the video; keep it live
+if (!FACE) await a.evaluate(() => window.__gr.pipe.applySettings({ autoAway: false }));
 const off = await a.evaluate(() => ({ cam: window.__gr.cam, mic: window.__gr.mic, camOpen: !!window.__gr.pipe.camStream, micOpen: !!window.__gr.pipe.micStream }));
 ok(!off.cam && !off.mic && !off.camOpen && !off.micOpen, `camera and microphone are off and closed on load ${JSON.stringify(off)}`);
 await a.click('#prejoin [data-toggle="cam"]');
@@ -92,6 +94,7 @@ const b = await ctx.newPage(); watch(b);
 await b.goto(url);
 await b.waitForFunction(() => window.__gr && window.__gr.pipe.running, null, { timeout: 30000 });
 ok(await b.isVisible("#invite-note"), "guest sees which call they're joining");
+if (!FACE) await b.evaluate(() => window.__gr.pipe.applySettings({ autoAway: false }));
 await b.fill("#name", "Anu");
 await b.click("#join-btn");
 await a.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 20000 });
