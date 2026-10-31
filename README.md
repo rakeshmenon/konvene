@@ -2,23 +2,23 @@
 
 <img src="public/favicon.svg" width="72" height="72" alt="">
 
-# Klatch
+# Konvene
 
 **Video calls that stay between you.**
 
 Free, private video calls in the browser. Peer to peer, no account, no server in the middle,
 and every effect worked out on your own device.
 
-[Live demo](https://klatch-calls.netlify.app) · [Run your own](#run-your-own) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[Live demo](https://konvene-calls.netlify.app) · [Run your own](#run-your-own) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
 
-[![CI](https://github.com/rakeshmenon/klatch/actions/workflows/ci.yml/badge.svg)](https://github.com/rakeshmenon/klatch/actions/workflows/ci.yml)
+[![CI](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml/badge.svg)](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-14523d.svg)](LICENSE)
 
 </div>
 
-## Why Klatch
+## Why Konvene
 
-Most video apps promise to look after your data. Klatch is built so there is nothing to look after.
+Most video apps promise to look after your data. Konvene is built so there is nothing to look after.
 
 - **Straight to them.** Video, voice, screens and chat travel directly between browsers over WebRTC, encrypted the whole way.
 - **Nothing kept.** No server records your call or your chat. Recordings are made and saved on the recorder's own device.
@@ -44,8 +44,8 @@ Most video apps promise to look after your data. Klatch is built so there is not
 
 ### One click
 
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/rakeshmenon/klatch)
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frakeshmenon%2Fklatch)
+[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/rakeshmenon/konvene)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Frakeshmenon%2Fkonvene)
 
 Build settings are already in `netlify.toml` and `vercel.json`. Add settings later as environment variables in your host's dashboard (see [Settings](#settings)).
 
@@ -54,8 +54,8 @@ Build settings are already in `netlify.toml` and `vercel.json`. Add settings lat
 Needs [Node.js](https://nodejs.org) 22 or newer.
 
 ```sh
-git clone https://github.com/rakeshmenon/klatch
-cd klatch
+git clone https://github.com/rakeshmenon/konvene
+cd konvene
 npm install
 npm run dev
 ```
@@ -64,7 +64,7 @@ Open <http://localhost:8790>. To try a call on one computer, open <http://localh
 
 ### Anywhere else
 
-`npm run build` writes a static site to `dist/`. Upload it to any web host and send unknown paths to `/index.html` (call links are paths). Ready-made setups: Cloudflare Pages (`_redirects` included), nginx (`deploy/nginx.conf`), Docker (`docker build -t klatch . && docker run -p 8080:80 klatch`). Full guide: [docs/self-hosting.md](docs/self-hosting.md).
+`npm run build` writes a static site to `dist/`. Upload it to any web host and send unknown paths to `/index.html` (call links are paths). Ready-made setups: Cloudflare Pages (`_redirects` included), nginx (`deploy/nginx.conf`), Docker (`docker build -t konvene . && docker run -p 8080:80 konvene`). Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 
 ## Settings
 
@@ -72,14 +72,14 @@ Copy `.env.example` to `.env`, or set the same names in your host's dashboard. A
 
 | Variable | What it does |
 |---|---|
-| `KLATCH_APP_ID` | Calls only meet browsers with the same app ID. Set your own to keep your calls separate from other copies. |
-| `KLATCH_OPERATOR`, `KLATCH_CONTACT_URL` | Who runs your copy, shown on the privacy page. |
-| `KLATCH_REPO_URL` | Where your copy's source lives; the site's GitHub links point here. |
-| `KLATCH_RELAYS` | Your own Nostr relays for the handshake. |
+| `KONVENE_APP_ID` | Calls only meet browsers with the same app ID. Set your own to keep your calls separate from other copies. |
+| `KONVENE_OPERATOR`, `KONVENE_CONTACT_URL` | Who runs your copy, shown on the privacy page. |
+| `KONVENE_REPO_URL` | Where your copy's source lives; the site's GitHub links point here. |
+| `KONVENE_RELAYS` | Your own Nostr relays for the handshake. |
 | `CLOUDFLARE_TURN_KEY_ID`, `CLOUDFLARE_TURN_API_TOKEN` | **Secret.** A TURN relay for strict networks, via Cloudflare. |
 | `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL` | **Secret.** Any other TURN server. |
 
-`KLATCH_*` values are built into the page, so anyone can read them. Secrets stay on the server: the `/api/turn` function (Netlify or Vercel) trades them for relay passwords that expire after a few hours.
+`KONVENE_*` values are built into the page, so anyone can read them. Secrets stay on the server: the `/api/turn` function (Netlify or Vercel) trades them for relay passwords that expire after a few hours.
 
 ## How it works
 
@@ -89,7 +89,7 @@ Copy `.env.example` to `.env`, or set the same names in your host's dashboard. A
         ─► WebRTC, directly to each person in the call (Trystero, handshake over public Nostr relays)
 ```
 
-There is no Klatch server in a call. The host serves static files and, optionally, one small function that hands out relay passwords. Details, including how the background cutout is cleaned up, are in [docs/architecture.md](docs/architecture.md).
+There is no Konvene server in a call. The host serves static files and, optionally, one small function that hands out relay passwords. Details, including how the background cutout is cleaned up, are in [docs/architecture.md](docs/architecture.md).
 
 ## Project layout
 
@@ -120,6 +120,6 @@ Bug reports, ideas and pull requests are welcome. Start with [CONTRIBUTING.md](C
 
 ## License
 
-Klatch is licensed under the [GNU Affero General Public License v3.0](LICENSE). You may use, change and share it, including commercially. If you run a changed version for other people, you must offer them its source code.
+Konvene is licensed under the [GNU Affero General Public License v3.0](LICENSE). You may use, change and share it, including commercially. If you run a changed version for other people, you must offer them its source code.
 
 Bundled libraries, models and fonts keep their own licences (MIT, Apache 2.0, OFL). See [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt); the same notices are appended to the built `app.js`.

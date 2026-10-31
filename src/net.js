@@ -15,7 +15,7 @@ export function makeRoomCode() {
 
 function localRoom(roomId) {
   const selfId = "L" + Math.random().toString(36).slice(2, 10);
-  const ch = new BroadcastChannel("klatch-" + roomId);
+  const ch = new BroadcastChannel("konvene-" + roomId);
   const peers = new Map(); // id -> { pc, makingOffer, polite }
   const actions = {};
   const streams = new Map(); // our broadcast streams -> metadata

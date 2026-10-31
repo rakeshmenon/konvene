@@ -1,8 +1,10 @@
 # Changelog
 
-All notable changes to Klatch. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+All notable changes to Konvene. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## Unreleased
+
+- Renamed Klatch to Konvene. Settings are now `KONVENE_*` (rename your `KLATCH_*` environment variables). The app ID default is now `konvene-calls-v1`, so Konvene calls don't meet browsers still running Klatch.
 
 - Fixed: a call between a Mac and an iPhone flickered between one and two people. Both browsers added their video at the same moment, Safari dropped the connection, and it reconnected in a loop. Now one side sends its video first and the other follows.
 - Added: a connection log for troubleshooting. Add `?debug` to any call link to see how each connection forms and why it ends.

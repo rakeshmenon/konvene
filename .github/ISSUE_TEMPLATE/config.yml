@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security or privacy problem
-    url: https://github.com/rakeshmenon/klatch/security/advisories/new
+    url: https://github.com/rakeshmenon/konvene/security/advisories/new
     about: Report it privately, please.
   - name: Self-hosting guide
-    url: https://github.com/rakeshmenon/klatch/blob/main/docs/self-hosting.md
+    url: https://github.com/rakeshmenon/konvene/blob/main/docs/self-hosting.md
     about: Deploying your own copy to Netlify, Vercel or any host.

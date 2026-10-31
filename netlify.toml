@@ -1,4 +1,4 @@
-# Netlify: build settings for Klatch. Nothing to change here; settings go in
+# Netlify: build settings for Konvene. Nothing to change here; settings go in
 # Site configuration > Environment variables (see .env.example).
 [build]
   command = "npm run build"

@@ -1,6 +1,6 @@
-# How Klatch works
+# How Konvene works
 
-Klatch is a static web app. A host serves files; the browsers in a call do everything else.
+Konvene is a static web app. A host serves files; the browsers in a call do everything else.
 
 ```
 camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
@@ -24,11 +24,11 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `backgrounds.js` | Virtual backgrounds drawn in code |
 | `net.js` | Rooms: Trystero (handshake over public Nostr relays) or `?local=1` (handshake over a BroadcastChannel, for testing) |
 | `recorder.js` | Records the call grid and every voice into one file, in the browser |
-| `config.js` | Deployment settings built in from `KLATCH_*` variables, and fetching relay passwords |
+| `config.js` | Deployment settings built in from `KONVENE_*` variables, and fetching relay passwords |
 
 ## Calls
 
-- Each person connects directly to each other person (a mesh), so calls are limited to six. Bigger calls would need a media server (SFU), which Klatch deliberately doesn't have.
+- Each person connects directly to each other person (a mesh), so calls are limited to six. Bigger calls would need a media server (SFU), which Konvene deliberately doesn't have.
 - The handshake (a few kilobytes of encrypted connection details) goes through public Nostr relays. Media never does.
 - Browsers find a route with public STUN servers. Where no direct route exists, an optional TURN relay passes the encrypted media along (see `server/turn.mjs`).
 - The outgoing video is a canvas, so switching cameras or effects needs nothing from the other side. Switching microphones swaps the audio track with `replaceTrack`.

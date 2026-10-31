@@ -1,10 +1,10 @@
-# Contributing to Klatch
+# Contributing to Konvene
 
-Thanks for helping. Klatch is small on purpose: plain JavaScript modules, one bundler, no framework, no server of its own. Contributions that keep it that way are the easiest to accept.
+Thanks for helping. Konvene is small on purpose: plain JavaScript modules, one bundler, no framework, no server of its own. Contributions that keep it that way are the easiest to accept.
 
 ## Ground rules
 
-These are what Klatch promises its users. Pull requests that break them can't be merged.
+These are what Konvene promises its users. Pull requests that break them can't be merged.
 
 1. **Nothing stored on a server.** Media goes peer to peer. Recordings are made and saved in the recorder's browser only.
 2. **No telemetry.** No analytics, tracking pixels, error reporting services or third-party requests. The test fails if a request leaves the site.
@@ -16,8 +16,8 @@ These are what Klatch promises its users. Pull requests that break them can't be
 ## Set up
 
 ```sh
-git clone https://github.com/rakeshmenon/klatch
-cd klatch
+git clone https://github.com/rakeshmenon/konvene
+cd konvene
 npm install
 npx playwright install chromium
 npm run dev          # http://localhost:8790, two tabs on /?local=1 for a call
@@ -47,4 +47,4 @@ See the project layout in the [README](README.md#project-layout) and the design 
 
 ## Licence of contributions
 
-Klatch is licensed under the AGPL-3.0. By sending a pull request you agree that your contribution is licensed under the same terms, and that you have the right to submit it.
+Konvene is licensed under the AGPL-3.0. By sending a pull request you agree that your contribution is licensed under the same terms, and that you have the right to submit it.
