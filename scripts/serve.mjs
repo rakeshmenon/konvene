@@ -27,4 +27,4 @@ http.createServer(async (req, res) => {
   if (!existsSync(file)) file = join(ROOT, "index.html"); // call links and anything else open the app
   res.writeHead(200, { "Content-Type": TYPES[extname(file)] || "application/octet-stream", "Cache-Control": "no-cache" });
   createReadStream(file).pipe(res);
-}).listen(PORT, "127.0.0.1", () => console.log(`Klatch is running at http://localhost:${PORT}  (Ctrl+C to stop)`));
+}).listen(PORT, "127.0.0.1", () => console.log(`Konvene is running at http://localhost:${PORT}  (Ctrl+C to stop)`));

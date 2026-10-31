@@ -1036,7 +1036,7 @@ function saveRecording() {
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = `klatch-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}.${ext}`;
+  a.download = `konvene-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}.${ext}`;
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
   $("#saved-dialog").close();
@@ -1045,7 +1045,7 @@ function saveRecording() {
 async function invite() {
   const url = link(state.code);
   if (navigator.share && matchMedia("(pointer: coarse)").matches) {
-    try { await navigator.share({ title: "Join my Klatch", url }); return; } catch { /* cancelled */ }
+    try { await navigator.share({ title: "Join my Konvene", url }); return; } catch { /* cancelled */ }
   }
   try { await navigator.clipboard.writeText(url); toast("Invite link copied"); }
   catch { toast(url, 8000); }
@@ -1071,7 +1071,7 @@ function buildReactions() {
 
 /* ---------------- start ---------------- */
 
-const SESSION_KEY = "klatch_call";
+const SESSION_KEY = "konvene_call";
 function rememberCall(code) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ code, name: state.name })); } catch { /* private */ } }
 function rememberedCall() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); } catch { return null; } }
 function forgetCall() { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* private */ } }
@@ -1165,8 +1165,8 @@ async function init() {
     btn.disabled = false;
     if (!ok) {
       showHint(state.micError === "NotAllowedError"
-        ? "Klatch needs your microphone to join. Allow it in the address bar (the camera icon), then press the button again. You'll still join muted."
-        : "Klatch needs a microphone to join, and none was found. Plug one in and try again.");
+        ? "Konvene needs your microphone to join. Allow it in the address bar (the camera icon), then press the button again. You'll still join muted."
+        : "Konvene needs a microphone to join, and none was found. Plug one in and try again.");
       return;
     }
     showHint("");

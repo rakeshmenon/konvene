@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Klatch is a project for people who want to talk to each other privately and kindly. We want working on it to feel the same way.
+Konvene is a project for people who want to talk to each other privately and kindly. We want working on it to feel the same way.
 
 ## Our standards
 

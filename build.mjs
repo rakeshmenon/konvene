@@ -1,4 +1,4 @@
-// Builds Klatch into dist/, a folder of static files that runs on any web host.
+// Builds Konvene into dist/, a folder of static files that runs on any web host.
 // Run: npm run build   (settings come from environment variables or .env, see .env.example)
 import { build } from "esbuild";
 import { cpSync, mkdirSync, copyFileSync, existsSync, readFileSync, writeFileSync, rmSync, readdirSync } from "node:fs";
@@ -11,18 +11,18 @@ const OUT = "dist";
 
 // settings the app reads in the browser (src/config.js). Everything here is public.
 const app = {
-  appId: env.KLATCH_APP_ID || "klatch-calls-v1",
-  relays: list(env.KLATCH_RELAYS),
-  turnEndpoint: env.KLATCH_TURN_ENDPOINT === undefined ? "/api/turn" : env.KLATCH_TURN_ENDPOINT,
-  turn: env.KLATCH_TURN_URLS ? { urls: list(env.KLATCH_TURN_URLS), username: env.KLATCH_TURN_USERNAME || "", credential: env.KLATCH_TURN_CREDENTIAL || "" } : null,
+  appId: env.KONVENE_APP_ID || "konvene-calls-v1",
+  relays: list(env.KONVENE_RELAYS),
+  turnEndpoint: env.KONVENE_TURN_ENDPOINT === undefined ? "/api/turn" : env.KONVENE_TURN_ENDPOINT,
+  turn: env.KONVENE_TURN_URLS ? { urls: list(env.KONVENE_TURN_URLS), username: env.KONVENE_TURN_USERNAME || "", credential: env.KONVENE_TURN_CREDENTIAL || "" } : null,
 };
 
 // settings for the pages
 const site = {
-  repo: (env.KLATCH_REPO_URL || "https://github.com/rakeshmenon/klatch").replace(/\/$/, ""),
-  demo: /^(1|true|yes)$/i.test(env.KLATCH_DEMO || ""),
-  operator: env.KLATCH_OPERATOR || "",
-  contact: env.KLATCH_CONTACT_URL || "",
+  repo: (env.KONVENE_REPO_URL || "https://github.com/rakeshmenon/konvene").replace(/\/$/, ""),
+  demo: /^(1|true|yes)$/i.test(env.KONVENE_DEMO || ""),
+  operator: env.KONVENE_OPERATOR || "",
+  contact: env.KONVENE_CONTACT_URL || "",
 };
 
 // MediaPipe sends usage logs to Google every minute. We point that at a dead data: URL
@@ -53,7 +53,7 @@ await build({
   target: ["chrome110", "safari16", "firefox115"],
   outfile: `${OUT}/app.js`,
   legalComments: "none",
-  define: { __KLATCH__: JSON.stringify(app) },
+  define: { __KONVENE__: JSON.stringify(app) },
   // the open-source licences travel inside the code everyone downloads (invisible on the page)
   footer: { js: "/*\n" + readFileSync("THIRD_PARTY_NOTICES.txt", "utf8").replaceAll("*/", "* /") + "\n*/" },
 });
@@ -70,8 +70,8 @@ for (const m of ["face_landmarker.task", "selfie_multiclass_256x256.tflite", "se
 
 // fill in the pages: {{REPO}} etc., and <!--demo-->...<!--/demo--> blocks only on the demo
 const operator = site.operator
-  ? `This copy of Klatch is run by ${esc(site.operator)}.` + (site.contact ? ` <a href="${esc(site.contact)}">Contact</a>.` : "")
-  : "This copy of Klatch is run by whoever deployed it. They haven't added their details yet.";
+  ? `This copy of Konvene is run by ${esc(site.operator)}.` + (site.contact ? ` <a href="${esc(site.contact)}">Contact</a>.` : "")
+  : "This copy of Konvene is run by whoever deployed it. They haven't added their details yet.";
 for (const f of readdirSync(OUT).filter((x) => x.endsWith(".html"))) {
   let html = readFileSync(`${OUT}/${f}`, "utf8");
   html = html.replace(/<!--demo-->([\s\S]*?)<!--\/demo-->/g, site.demo ? "$1" : "");

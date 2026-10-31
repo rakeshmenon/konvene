@@ -1,6 +1,6 @@
 # Security and privacy
 
-Klatch's main promise is privacy, so a privacy bug is a security bug.
+Konvene's main promise is privacy, so a privacy bug is a security bug.
 
 ## Reporting a problem
 
@@ -10,7 +10,7 @@ You'll get a reply within a week. Once a fix is out, we're happy to credit you i
 
 ## What counts
 
-Anything that breaks the promises in the [README](README.md#why-klatch) or on the privacy page, for example:
+Anything that breaks the promises in the [README](README.md#why-konvene) or on the privacy page, for example:
 
 - Call media, chat or face data reaching anyone other than the people in the call.
 - A way to join, watch or record a call without the others seeing it.

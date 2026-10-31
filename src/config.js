@@ -1,11 +1,11 @@
-// Settings for this deployment. build.mjs fills __KLATCH__ from KLATCH_* environment variables
+// Settings for this deployment. build.mjs fills __KONVENE__ from KONVENE_* environment variables
 // (see .env.example), so the same code runs on any host with its own settings.
-/* global __KLATCH__ */
-const C = typeof __KLATCH__ === "object" ? __KLATCH__ : {};
+/* global __KONVENE__ */
+const C = typeof __KONVENE__ === "object" ? __KONVENE__ : {};
 
 export const CONFIG = {
   // calls only meet other browsers using the same app ID; change it to keep your deployment's calls separate
-  appId: C.appId || "klatch-calls-v1",
+  appId: C.appId || "konvene-calls-v1",
   // Nostr relays used for the handshake (empty: Trystero's defaults)
   relays: C.relays || [],
   // where the browser asks for short-lived TURN relay passwords (a Netlify or Vercel function)

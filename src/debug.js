@@ -1,4 +1,4 @@
-// Connection log for troubleshooting: add ?debug to any Klatch address to see it.
+// Connection log for troubleshooting: add ?debug to any Konvene address to see it.
 // It shows how each connection to another person forms and why it ends, on this device only.
 // Nothing here is sent anywhere. Peer ids are shortened so a screenshot is safe to share.
 

@@ -1,4 +1,4 @@
-# Klatch: notes for AI coding assistants
+# Konvene: notes for AI coding assistants
 
 Read `README.md`, `CONTRIBUTING.md` and `docs/architecture.md` first. This file is the short version.
 
@@ -18,7 +18,7 @@ Read `README.md`, `CONTRIBUTING.md` and `docs/architecture.md` first. This file 
 - Effects never label emotions or identify people.
 - Anything new that leaves the device goes on `public/privacy.html` in the same change.
 - New bundled libraries, models or fonts go in `THIRD_PARTY_NOTICES.txt`.
-- Secrets never start with `KLATCH_` (those are built into the page). Server secrets are read only in `server/turn.mjs`.
+- Secrets never start with `KONVENE_` (those are built into the page). Server secrets are read only in `server/turn.mjs`.
 
 ## Style
 
