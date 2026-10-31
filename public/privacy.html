@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'none'; connect-src 'none'">
+<title>Privacy: Klatch</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main id="main" class="doc">
+  <p class="brand"><a href="/"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#10261f"/><circle cx="16" cy="16" r="6" fill="#e0a93c"/><circle cx="16.0" cy="5.6" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="10.8" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="16.0" cy="26.4" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="10.8" r="2" fill="#f3f3ef"/></svg>Klatch</a></p>
+  <h1>Privacy</h1>
+  <p class="lede">Short version: <strong>your call goes straight between the people in it.</strong> <strong>Effects run on your own device.</strong> <strong>Nothing is stored on a server, and there is no account.</strong></p>
+
+  <h2>Camera and microphone</h2>
+  <p>Your camera and microphone are <strong>off until you turn them on</strong>. Klatch asks for the microphone only when you start or join a call, and you <strong>join muted with your camera off</strong>.</p>
+
+  <h2>Video and voice</h2>
+  <p>Calls use WebRTC, so video and voice travel <strong>directly between the browsers in the room, encrypted</strong>. We don't run a media server, so <strong>we never receive or store your call</strong>.</p>
+
+  <h2>Screen sharing and chat</h2>
+  <p>A screen you share and the chat messages you send travel the same way as video: directly to the other people in the call. <strong>Chat messages are not saved anywhere</strong> and disappear when you leave. Your browser asks you which screen, window or tab to share, and you can stop at any time.</p>
+  <h2>Effects</h2>
+  <p>Background blur, virtual backgrounds, looks, lighting, face touch-ups, makeup, face warps and expression effects are <strong>calculated in your browser</strong> using Google MediaPipe models that are downloaded from this site. They change the picture before it is sent. The face tracking finds points on your face to place effects; <strong>it does not recognise who you are</strong>. <strong>A background image you upload stays on your device.</strong></p>
+
+  <h2>Smart features</h2>
+  <p>Pausing your video when you step away, keeping you in frame, fixing low light and the reminder when you talk while muted all work on your device, using the same face tracking and microphone level as the rest of the app. <strong>Nothing about them is sent anywhere.</strong></p>
+  <h2>Call links</h2>
+  <p>A call link looks like <code>klatch.example/abc-def-ghj</code>. The website host sees which call code a browser opened, as it does for any web address, but it is <strong>never part of the call and cannot see or hear it</strong>.</p>
+  <h2>How people find each other</h2>
+  <p>To connect, browsers exchange a short handshake through public Nostr relays, and use public STUN servers (Google and Cloudflare) to find a direct route. These services, and the other people in the call, can see your IP address, as with any video call. They <strong>do not receive your video or voice</strong>.</p>
+  <p>Some networks (strict offices, hotels, some mobile carriers) block direct connections. If whoever runs this site has set up a relay (a TURN server, for example Cloudflare's), your call is passed through it on those networks only. The relay forwards your call <strong>still encrypted and cannot see or hear it</strong>. It can see your IP address. To get a short-lived relay password, your browser asks this site's <code>/api/turn</code> address when the page opens.</p>
+
+  <h2>Recording</h2>
+  <p>Anyone in a call can record it in their own browser. <strong>Everyone sees a "recording" badge</strong> with that person's name while it runs. The file is <strong>created on the recorder's device</strong> and is only saved if they choose to. In many countries you need everyone's consent to record a call, so please ask first.</p>
+
+  <h2>What this site stores</h2>
+  <p>Your browser remembers your name, your effect choices and which camera, microphone and speakers you picked, in local storage on your device. <strong>No cookies, no analytics, no ads.</strong></p>
+
+  <h2>Open source</h2>
+  <p>Klatch is open source under the GNU AGPL. <strong>You can read the code that makes every promise on this page</strong> at <a href="{{REPO}}">{{REPO}}</a>, and run your own copy.</p>
+
+  <h2>Who runs this site</h2>
+  <p>{{OPERATOR}}</p>
+  <p class="fine">Last updated 31 October 2026. <a href="/">Back to Klatch</a></p>
+</main>
+</body>
+</html>

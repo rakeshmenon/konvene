@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:; script-src 'none'; connect-src 'none'">
+<title>Run your own: Klatch</title>
+<meta name="description" content="Klatch is open source. Deploy your own copy to Netlify, Vercel or any web host in a few minutes.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main id="main" class="doc">
+  <p class="brand"><a href="/"><svg class="mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#10261f"/><circle cx="16" cy="16" r="6" fill="#e0a93c"/><circle cx="16.0" cy="5.6" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="10.8" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="16.0" cy="26.4" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="10.8" r="2" fill="#f3f3ef"/></svg>Klatch</a></p>
+  <h1>Run your own Klatch</h1>
+  <p class="lede">Klatch is a folder of static files plus one optional function. <strong>Put it on Netlify, Vercel or any web host</strong>, under your own name and with your own settings. The code is at <a href="{{REPO}}">{{REPO}}</a>.</p>
+  <!--demo--><p class="callout">The site you're on is the public demo. Your own copy works exactly the same, and calls on it never touch the demo.</p><!--/demo-->
+  <ul class="toc">
+    <li><a href="#one-click">One click</a></li>
+    <li><a href="#local">On your computer</a></li>
+    <li><a href="#anywhere">Any web host</a></li>
+    <li><a href="#settings">Settings</a></li>
+    <li><a href="#relay">Relay for strict networks</a></li>
+    <li><a href="#licence">Licence</a></li>
+  </ul>
+
+  <h2 id="one-click">Deploy in one click</h2>
+  <p>Both buttons copy the code into your own GitHub account, build it and give you a web address. Every change you push goes live on its own.</p>
+  <div class="deploy">
+    <a class="btn primary" href="https://app.netlify.com/start/deploy?repository={{REPO}}">Deploy to Netlify</a>
+    <a class="btn secondary" href="https://vercel.com/new/clone?repository-url={{REPO_ENC}}">Deploy to Vercel</a>
+  </div>
+  <p>The build settings are already in the code (<code>netlify.toml</code> and <code>vercel.json</code>), so there is nothing to fill in. Add <a href="#settings">settings</a> later under <strong>Environment variables</strong> in your host's dashboard, then redeploy.</p>
+
+  <h2 id="local">Run it on your computer</h2>
+  <p>You need <a href="https://nodejs.org">Node.js</a> 20 or newer and git.</p>
+<pre><code>git clone {{REPO}}
+cd klatch
+npm install
+npm run dev</code></pre>
+  <p>Open <code>http://localhost:8790</code>. To try a call on one computer, open <code>http://localhost:8790/?local=1</code> in two tabs. Browsers only allow the camera on <code>localhost</code> and on <strong>HTTPS</strong> addresses, so a real call between two computers needs the site deployed.</p>
+
+  <h2 id="anywhere">Deploy to any web host</h2>
+  <p><code>npm run build</code> makes a <code>dist/</code> folder. Upload that folder to any static host. The only rule: <strong>send unknown paths to <code>/index.html</code></strong>, because call links look like <code>/abc-def-ghj</code>.</p>
+  <ul>
+    <li><strong>Cloudflare Pages:</strong> works as is (the <code>_redirects</code> file is included). Build command <code>npm run build</code>, output <code>dist</code>.</li>
+    <li><strong>Nginx:</strong> <code>try_files $uri /index.html;</code></li>
+    <li><strong>Apache:</strong> <code>FallbackResource /index.html</code></li>
+    <li><strong>Caddy:</strong> <code>try_files {path} /index.html</code></li>
+    <li><strong>Docker:</strong> <code>docker build -t klatch .</code> then <code>docker run -p 8080:80 klatch</code></li>
+    <li><strong>GitHub Pages and similar:</strong> a copy of the app is included as <code>404.html</code>, so call links work on a site served from the root of its domain.</li>
+  </ul>
+  <p>Static hosts can't run the relay function. Calls still work; see <a href="#relay">the relay section</a> for what that means.</p>
+
+  <h2 id="settings">Settings</h2>
+  <p>Everything is optional. Set these as environment variables in your host's dashboard, or copy <code>.env.example</code> to <code>.env</code> on your computer. <code>KLATCH_</code> settings end up in the page, so anyone can read them. <strong>Secrets never start with <code>KLATCH_</code></strong> and stay on the server.</p>
+  <table>
+    <thead><tr><th>Variable</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td><code>KLATCH_APP_ID</code></td><td>Calls only meet browsers with the same app ID. Set your own (for example <code>acme-calls</code>) to keep your calls apart from other copies.</td></tr>
+      <tr><td><code>KLATCH_OPERATOR</code></td><td>Your name or organisation, shown on the privacy page.</td></tr>
+      <tr><td><code>KLATCH_CONTACT_URL</code></td><td>A contact link for the privacy page (a web page or <code>mailto:</code> link).</td></tr>
+      <tr><td><code>KLATCH_REPO_URL</code></td><td>Where your copy's code lives. The GitHub links on the site point here.</td></tr>
+      <tr><td><code>KLATCH_RELAYS</code></td><td>Your own Nostr relays for the handshake, comma separated. Leave empty for the public defaults.</td></tr>
+      <tr><td><code>CLOUDFLARE_TURN_KEY_ID</code><br><code>CLOUDFLARE_TURN_API_TOKEN</code></td><td><strong>Secret.</strong> Cloudflare relay for strict networks (see below).</td></tr>
+      <tr><td><code>TURN_URLS</code>, <code>TURN_USERNAME</code>, <code>TURN_CREDENTIAL</code></td><td><strong>Secret.</strong> Any other TURN server, such as your own coturn.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="relay">A relay for strict networks</h2>
+  <p>Most calls connect directly. Some networks (strict offices, hotels, some mobile carriers) won't allow that, and those calls need a <strong>TURN relay</strong>. The relay passes the call along still encrypted; it can't see or hear it.</p>
+  <ol>
+    <li>In the Cloudflare dashboard, open <strong>Realtime</strong>, then <strong>TURN Server</strong>, and create a TURN key. Cloudflare has a free allowance.</li>
+    <li>Copy the key ID and the API token.</li>
+    <li>In Netlify or Vercel, add them as <code>CLOUDFLARE_TURN_KEY_ID</code> and <code>CLOUDFLARE_TURN_API_TOKEN</code>, marked secret, and redeploy.</li>
+  </ol>
+  <p>The included function (<code>/api/turn</code>) swaps your secret for passwords that expire after a few hours, so the secret never reaches a browser. On a host without functions you can set <code>KLATCH_TURN_URLS</code>, <code>KLATCH_TURN_USERNAME</code> and <code>KLATCH_TURN_CREDENTIAL</code> instead, but those are visible to anyone, so only use credentials made for that.</p>
+
+  <h2 id="licence">Licence</h2>
+  <p>Klatch is licensed under the <a href="{{REPO}}/blob/main/LICENSE">GNU AGPL v3</a>. You can use, change and share it for free, including commercially. If you run <strong>a changed version for other people</strong>, you must offer them its source code: put your copy on GitHub and set <code>KLATCH_REPO_URL</code>, and the links on your site do that for you. Keep the licence notices for the bundled libraries and models (they travel inside <code>app.js</code>).</p>
+
+  <h2>Help and contributing</h2>
+  <p>Questions, bugs and ideas go to <a href="{{REPO}}/issues">GitHub issues</a>. Want to help? Read <a href="{{REPO}}/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
+  <p class="fine"><a href="/">Back to Klatch</a> · <a href="/privacy.html">Privacy</a></p>
+</main>
+</body>
+</html>

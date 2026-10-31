@@ -1,0 +1,32 @@
+# Netlify: build settings for Klatch. Nothing to change here; settings go in
+# Site configuration > Environment variables (see .env.example).
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+# Redirects (call links, /api/turn) live in public/_redirects.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "no-referrer"
+    Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), geolocation=(), interest-cohort=()"
+    Strict-Transport-Security = "max-age=31536000"
+
+[[headers]]
+  for = "/models/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"
+
+[[headers]]
+  for = "/vendor/*"
+  [headers.values]
+    Cache-Control = "public, max-age=2592000"

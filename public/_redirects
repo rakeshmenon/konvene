@@ -1,0 +1,5 @@
+# Netlify and Cloudflare Pages.
+# Relay passwords come from the Netlify function (Vercel uses api/turn.js instead).
+/api/turn   /.netlify/functions/turn   200
+# Call links like /abc-def-ghj open the app.
+/*          /index.html                200

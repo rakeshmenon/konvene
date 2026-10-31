@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self' wss: data: blob:; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; style-src 'self'; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<title>Klatch: private video calls, free in your browser</title>
+<meta name="description" content="Free video calls that go straight between you and the people you call. No account, no app, nothing stored. Screen sharing, chat, recording and background blur in your browser.">
+<meta name="theme-color" content="#f3f3ef">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/fonts/instrument-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/styles.css">
+<script type="module" src="/app.js"></script>
+</head>
+<body data-screen="prejoin">
+<a class="skiplink" href="#main">Skip to content</a>
+<svg width="0" height="0" class="sr-only" aria-hidden="true">
+  <symbol id="i-logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#10261f"/><circle cx="16" cy="16" r="6" fill="#e0a93c"/><circle cx="16.0" cy="5.6" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="10.8" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="16.0" cy="26.4" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="10.8" r="2" fill="#f3f3ef"/></symbol>
+  <symbol id="i-chair" viewBox="0 0 24 24"><path d="M7 3.5h10M7.5 3.5v9M16.5 3.5v9M5.5 12.5h13v3h-13zM7 15.5v5M17 15.5v5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 14.5a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5.5a3 3 0 0 0 3 3Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M18 11.5a6 6 0 0 1-12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M15 9V6a3 3 0 0 0-5.8-1M9 9v2.5a3 3 0 0 0 4.8 2.4M18 11.5a6 6 0 0 1-1 3.3M6 11.5a6 6 0 0 0 9.2 5.1M12 17.5V21M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><rect x="3" y="6.5" width="13" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m16 10.5 5-3v9l-5-3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-cam-off" viewBox="0 0 24 24"><path d="M9 6.5h5a2 2 0 0 1 2 2V12m0 3.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 1.2-1.8M16 10.5l5-3v9M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-studio" viewBox="0 0 24 24"><path d="M12 3.5l1.6 4.3a3 3 0 0 0 1.8 1.8l4.1 1.4-4.1 1.4a3 3 0 0 0-1.8 1.8L12 18.5l-1.6-4.3a3 3 0 0 0-1.8-1.8L4.5 11l4.1-1.4a3 3 0 0 0 1.8-1.8L12 3.5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M19 17v4M17 19h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 14a4 4 0 0 0 7 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="9" cy="10" r="1.1" fill="currentColor"/><circle cx="15" cy="10" r="1.1" fill="currentColor"/></symbol>
+  <symbol id="i-rec" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4" fill="currentColor"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-leave" viewBox="0 0 24 24"><path d="M3.5 13.5c4.7-4.2 12.3-4.2 17 0l-1.8 2.3a1 1 0 0 1-1.3.2l-2.2-1.4a1 1 0 0 1-.4-.9l.2-1.8a12 12 0 0 0-6 0l.2 1.8a1 1 0 0 1-.4.9L6.6 16a1 1 0 0 1-1.3-.2l-1.8-2.3Z" fill="currentColor"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-screen" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="12.5" rx="2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 20.5h7M12 17v3.5M12 13.5v-6M9.2 10.2 12 7.5l2.8 2.7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 12.5V6.2a1.4 1.4 0 0 1 2.8 0V11m0-6.3a1.4 1.4 0 0 1 2.8 0V11m0-5.3a1.4 1.4 0 0 1 2.8 0V12m0-3.8a1.4 1.4 0 0 1 2.8 0v6.3a6.5 6.5 0 0 1-6.5 6.5h-.6a6 6 0 0 1-4.6-2.2l-3-3.7a1.5 1.5 0 0 1 2.2-2l2.1 2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4.5 6.5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H11l-4.5 3.5v-3.5h0a2 2 0 0 1-2-2v-8Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 19.5a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17.5 14.3a6 6 0 0 1 3.5 5.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="15" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M14.5 3.5l6 6-2.2.8-3.5 3.5-.5 4-2.3 2.2L4 12l2.2-2.3 4-.5 3.5-3.5.8-2.2ZM8 16l-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="M4.5 12 19.5 5l-4.5 14-3.5-5.5L4.5 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+</svg>
+
+<main id="main">
+
+  <section class="prejoin" id="prejoin" aria-labelledby="pj-title">
+    <header class="nav">
+      <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Klatch</a>
+      <nav class="nav-links" aria-label="Site">
+        <a href="/self-host.html">Run your own</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="{{REPO}}">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="hero">
+      <div class="word-wrap">
+        <canvas class="hero-word" id="hero-word" role="img" aria-label="The words just us, filled with your live camera"></canvas>
+        <p class="word-caption" id="word-caption">That's you, live. Only you can see this.</p>
+      </div>
+      <div class="hero-row">
+        <div class="hero-copy">
+          <h1 id="pj-title">Video calls that stay between you.</h1>
+          <p class="lede" id="pj-lede">Klatch connects you straight to the people you call. No account, no app to install, and no server in the middle keeping a copy. Free, in your browser.</p>
+        </div>
+        <div class="hero-action">
+          <form id="join-form" class="join">
+            <label for="name">Your name</label>
+            <div class="join-row">
+              <input id="name" maxlength="20" autocomplete="nickname" placeholder="How others will see you" required>
+              <button class="btn primary" type="submit" id="join-btn">Start a call</button>
+            </div>
+            <p class="invite-note" id="invite-note" hidden>You're joining call <span id="invite-code"></span></p>
+          </form>
+          <div class="pj-controls">
+            <div class="split glass">
+              <button class="caret" type="button" data-menu="mic" aria-haspopup="menu" aria-expanded="false" aria-label="Choose microphone and speakers" title="Choose microphone and speakers"><svg><use href="#i-up"/></svg></button>
+              <button class="round off" type="button" data-toggle="mic" aria-pressed="false" aria-label="Microphone" title="Microphone"><svg><use href="#i-mic-off"/></svg></button>
+            </div>
+            <div class="split glass">
+              <button class="caret" type="button" data-menu="cam" aria-haspopup="menu" aria-expanded="false" aria-label="Choose camera" title="Choose camera"><svg><use href="#i-up"/></svg></button>
+              <button class="round off" type="button" data-toggle="cam" aria-pressed="false" aria-label="Camera" title="Camera"><svg><use href="#i-cam-off"/></svg></button>
+            </div>
+            <button class="pill-btn" type="button" data-open-fx aria-expanded="false"><svg aria-hidden="true"><use href="#i-studio"/></svg>Effects and smart features</button>
+          </div>
+          <p class="cam-hint" id="cam-hint" hidden></p>
+          <ul class="trust">
+            <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>No sign-up</li>
+            <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Encrypted device to device</li>
+            <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Nothing stored</li>
+          </ul>
+          <form id="code-form" class="code-form">
+            <label for="code-input">Got an invite?</label>
+            <div class="code-row">
+              <input id="code-input" autocomplete="off" spellcheck="false" placeholder="Paste the link or code">
+              <button class="btn secondary" type="submit">Join</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <section class="privacy" aria-labelledby="privacy-title">
+      <div class="privacy-head">
+        <div>
+          <h2 id="privacy-title">Private by design, not by policy.</h2>
+          <p class="section-lede">Most video apps promise to look after your data. Klatch is built so there is nothing to look after.</p>
+        </div>
+        <figure class="route" aria-label="Your call goes directly from you to them. Klatch has no server in the call.">
+          <div class="route-cloud"><span>Klatch servers</span><em>Not in your call</em></div>
+          <div class="route-line">
+            <span class="node">You</span>
+            <span class="wire"><span>Encrypted</span></span>
+            <span class="node">Them</span>
+          </div>
+        </figure>
+      </div>
+      <dl class="claims">
+        <div><dt>Straight to them</dt><dd>Video, voice, screens and messages travel directly between your browsers, encrypted the whole way.</dd></div>
+        <div><dt>Nothing kept</dt><dd>No server records your call or your chat. Messages disappear when you leave, and recordings stay on the device that made them.</dd></div>
+        <div><dt>No account</dt><dd>No email, phone number or password. Type a name and start talking.</dd></div>
+        <div><dt>No tracking</dt><dd>No cookies, no analytics, no ads. Nothing about you is sold because nothing about you is collected.</dd></div>
+        <div><dt>Your face stays home</dt><dd>Background blur, lighting and effects are worked out on your own device. Your camera is never uploaded to be processed.</dd></div>
+        <div><dt>Recording is never secret</dt><dd>Recording asks first and shows everyone a badge with the name of the person recording.</dd></div>
+      </dl>
+      <p class="fine-print">Being straight with you: as on any video call, the people you talk to and the public services that help browsers find each other can see your IP address. <a href="/privacy.html">Read the privacy details</a></p>
+    </section>
+
+    <section class="smart-features" aria-labelledby="smart-title">
+      <h2 id="smart-title">Smart, without the cloud.</h2>
+      <p class="section-lede">Features that usually need someone else's servers, done on your own device.</p>
+      <dl class="smart-list">
+        <div><dt>Steps away when you do</dt><dd>Leave your desk and your video pauses with a "Stepped away" card. Sit back down and you're live again.</dd></div>
+        <div><dt>Keeps you in frame</dt><dd>Lean back or shift around and the picture gently follows you.</dd></div>
+        <div><dt>Fixes a dark room</dt><dd>Calling from a dim room? Your video brightens on its own.</dd></div>
+        <div><dt>Notices when you're muted</dt><dd>Start talking with your mic off and Klatch tells you, before anyone else has to.</dd></div>
+        <div><dt>Knows you from your chair</dt><dd>Background blur that follows your hair and shoulders and leaves the furniture out.</dd></div>
+      </dl>
+      <p class="also">Plus face touch-up and makeup, background blur and virtual backgrounds, screen sharing, chat, reactions, raise hand and recording, for up to six people.</p>
+    </section>
+
+    <section class="open-source" id="open-source" aria-labelledby="os-title">
+      <div class="os-head">
+        <div>
+          <h2 id="os-title">Open source, all of it.</h2>
+          <p class="section-lede">Every promise on this page is in code anyone can read. Run Klatch on your own domain, change it, make it yours.</p>
+          <div class="os-actions">
+            <a class="btn primary" href="{{REPO}}">View the code on GitHub</a>
+            <a class="btn secondary" href="/self-host.html">How to run your own</a>
+          </div>
+        </div>
+        <figure class="term" aria-label="Three commands to run Klatch on your computer">
+          <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+          <pre><code><span class="p">$</span> git clone {{REPO}}
+<span class="p">$</span> cd klatch &amp;&amp; npm install
+<span class="p">$</span> npm run dev
+<span class="o">Klatch is running at http://localhost:8790</span></code></pre>
+        </figure>
+      </div>
+      <dl class="smart-list os-list">
+        <div><dt>Read every line</dt><dd>No hidden servers, no tracking. The code that keeps your calls private is public, so you don't have to take our word for it.</dd></div>
+        <div><dt>Deploy in minutes</dt><dd>One click to Netlify or Vercel, or put the built folder on any web host. Your settings and keys live in your own environment file.</dd></div>
+        <div><dt>Stays open</dt><dd>Licensed under the AGPL. Anyone can change Klatch, and anyone who runs a changed version for others shares their code too.</dd></div>
+      </dl>
+      <!--demo--><p class="also">You're on the public demo, run by the author. It's the same code you can deploy yourself.</p><!--/demo-->
+    </section>
+
+    <section class="cta-band" aria-labelledby="cta-title">
+      <h2 id="cta-title">Start a private call.</h2>
+      <p>Free. Nothing to install. Send the link and you're talking.</p>
+      <a class="btn primary" href="#name" id="cta-start">Start a call</a>
+    </section>
+
+    <footer class="site-foot">
+      <a class="brand small" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Klatch</a>
+      <p>Free, private video calls in your browser.<!--demo--> This is the public demo.<!--/demo--></p>
+      <nav aria-label="Footer"><a href="/self-host.html">Run your own</a><a href="{{REPO}}">GitHub</a><a href="/privacy.html">Privacy</a></nav>
+    </footer>
+  </section>
+
+  <section class="call" id="call" hidden aria-labelledby="call-title">
+    <header class="bar call-bar">
+      <p class="brand"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Klatch</p>
+      <h1 class="sr-only" id="call-title">Call</h1>
+      <div class="bar-mid">
+        <button class="chip" type="button" id="room-chip" title="Copy invite link"><span id="room-code"></span><svg aria-hidden="true"><use href="#i-link"/></svg></button>
+        <p class="rec-badge" id="rec-badge" hidden role="status"><span class="rec-dot" aria-hidden="true"></span><span id="rec-text">Recording</span></p>
+      </div>
+      <p class="count" id="count"></p>
+    </header>
+    <div class="stage" id="stage">
+      <div class="spotlight" id="spotlight" hidden></div>
+      <ul class="tiles" id="tiles" aria-label="People in the call"></ul>
+    </div>
+    <nav class="dock" aria-label="Call controls">
+      <div class="dock-side"></div>
+      <div class="dock-main">
+        <div class="split">
+          <button class="caret" type="button" data-menu="mic" aria-haspopup="menu" aria-expanded="false" aria-label="Choose microphone and speakers" title="Choose microphone and speakers"><svg><use href="#i-up"/></svg></button>
+          <button class="round off" type="button" data-toggle="mic" aria-pressed="false" aria-label="Microphone" title="Microphone"><svg><use href="#i-mic-off"/></svg></button>
+        </div>
+        <div class="split">
+          <button class="caret" type="button" data-menu="cam" aria-haspopup="menu" aria-expanded="false" aria-label="Choose camera" title="Choose camera"><svg><use href="#i-up"/></svg></button>
+          <button class="round off" type="button" data-toggle="cam" aria-pressed="false" aria-label="Camera" title="Camera"><svg><use href="#i-cam-off"/></svg></button>
+        </div>
+        <button class="round" type="button" id="share-btn" aria-pressed="false" aria-label="Share your screen" title="Share your screen"><svg><use href="#i-screen"/></svg></button>
+        <button class="round" type="button" id="hand-btn" aria-pressed="false" aria-label="Raise hand" title="Raise hand"><svg><use href="#i-hand"/></svg></button>
+        <div class="react-wrap">
+          <button class="round" type="button" id="react-btn" aria-expanded="false" aria-controls="react-pop" aria-label="Reactions" title="Reactions"><svg><use href="#i-smile"/></svg></button>
+          <div class="react-pop" id="react-pop" hidden></div>
+        </div>
+        <button class="round" type="button" data-open-fx aria-expanded="false" aria-label="Effects" title="Effects"><svg><use href="#i-studio"/></svg></button>
+        <button class="round" type="button" id="rec-btn" aria-pressed="false" aria-label="Record" title="Record"><svg><use href="#i-rec"/></svg><span class="rec-time" id="rec-time" hidden></span></button>
+        <button class="leave" type="button" id="leave-btn" aria-label="Leave call" title="Leave call"><svg><use href="#i-leave"/></svg></button>
+      </div>
+      <div class="dock-side right">
+        <button class="round flat" type="button" data-panel="chat" aria-expanded="false" aria-label="Chat" title="Chat"><svg><use href="#i-chat"/></svg><span class="dot" id="chat-dot" hidden></span></button>
+        <button class="round flat" type="button" data-panel="people" aria-expanded="false" aria-label="People" title="People"><svg><use href="#i-people"/></svg><span class="badge" id="people-n"></span></button>
+        <button class="round flat" type="button" data-panel="settings" aria-expanded="false" aria-label="Devices" title="Camera, microphone and speakers"><svg><use href="#i-settings"/></svg></button>
+      </div>
+    </nav>
+  </section>
+
+  <aside class="side-panel" id="side-panel" hidden aria-labelledby="side-title">
+    <header class="panel-head">
+      <h2 id="side-title">Chat</h2>
+      <button class="round flat small" type="button" id="side-close" aria-label="Close panel"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="panel-body" id="pane-chat">
+      <p class="note top">Messages go straight to the people in this call. They aren't saved anywhere and disappear when you leave.</p>
+      <ol class="messages" id="messages" aria-live="polite"></ol>
+      <form class="composer" id="chat-form">
+        <label class="sr-only" for="chat-input">Message</label>
+        <input id="chat-input" maxlength="500" autocomplete="off" placeholder="Send a message">
+        <button class="round small solid" type="submit" aria-label="Send"><svg><use href="#i-send"/></svg></button>
+      </form>
+    </div>
+    <div class="panel-body" id="pane-people" hidden>
+      <ul class="people" id="people-list"></ul>
+      <button class="btn secondary wide" type="button" id="invite-btn"><svg aria-hidden="true"><use href="#i-link"/></svg>Copy invite link</button>
+    </div>
+    <div class="panel-body" id="pane-settings" hidden>
+      <div class="devices stacked" id="call-devices"></div>
+    </div>
+  </aside>
+
+  <aside class="fx-panel" id="fx-panel" hidden aria-labelledby="fx-title">
+    <header class="panel-head">
+      <h2 id="fx-title">Effects</h2>
+      <button class="round flat small" type="button" id="fx-close" aria-label="Close effects"><svg><use href="#i-close"/></svg></button>
+    </header>
+    <div class="fx-preview" id="fx-preview"></div>
+    <div class="tabs" role="tablist" aria-label="Effect types">
+      <button role="tab" id="tab-bg" aria-controls="pane-bg" aria-selected="true">Background</button>
+      <button role="tab" id="tab-look" aria-controls="pane-look" aria-selected="false" tabindex="-1">Looks</button>
+      <button role="tab" id="tab-light" aria-controls="pane-light" aria-selected="false" tabindex="-1">Light</button>
+      <button role="tab" id="tab-face" aria-controls="pane-face" aria-selected="false" tabindex="-1">Face</button>
+      <button role="tab" id="tab-fun" aria-controls="pane-fun" aria-selected="false" tabindex="-1">Smart</button>
+    </div>
+    <div class="pane" role="tabpanel" id="pane-bg" aria-labelledby="tab-bg">
+      <div class="opts wide" id="opts-bg"></div>
+      <input type="file" id="bg-file" accept="image/*" hidden>
+      <p class="note">An image you add stays on this device.</p>
+    </div>
+    <div class="pane" role="tabpanel" id="pane-look" aria-labelledby="tab-look" hidden><div class="opts wide" id="opts-look"></div></div>
+    <div class="pane" role="tabpanel" id="pane-light" aria-labelledby="tab-light" hidden>
+      <div class="opts wide" id="opts-light"></div>
+      <label class="slider"><span>Brightness</span><input type="range" id="brightness" min="-0.5" max="0.8" step="0.05" value="0"></label>
+    </div>
+    <div class="pane" role="tabpanel" id="pane-face" aria-labelledby="tab-face" hidden>
+      <section class="fsec" aria-labelledby="fs-touch">
+        <h3 id="fs-touch">Touch up</h3>
+        <label class="slider"><span>Smooth skin</span><input type="range" data-face="touchup" min="0" max="1" step="0.05" value="0"></label>
+        <label class="slider"><span>Brighter eyes</span><input type="range" data-face="eyeBright" min="0" max="1" step="0.05" value="0"></label>
+        <label class="slider"><span>Whiter teeth</span><input type="range" data-face="teeth" min="0" max="1" step="0.05" value="0"></label>
+        <label class="slider"><span>Slimmer face</span><input type="range" data-face="slim" min="0" max="1" step="0.05" value="0"></label>
+        <label class="slider"><span>Bigger eyes</span><input type="range" data-face="eyeBig" min="0" max="1" step="0.05" value="0"></label>
+      </section>
+      <section class="fsec" aria-labelledby="fs-makeup">
+        <h3 id="fs-makeup">Makeup</h3>
+        <div class="sw-row"><span id="sw-lips-l">Lips</span><div class="swatches" id="sw-lips" role="group" aria-labelledby="sw-lips-l"></div></div>
+        <div class="sw-row"><span id="sw-blush-l">Blush</span><div class="swatches" id="sw-blush" role="group" aria-labelledby="sw-blush-l"></div></div>
+        <label class="slider"><span>Strength</span><input type="range" data-face="makeup" min="0" max="1" step="0.05" value="0"></label>
+      </section>
+      <section class="fsec" aria-labelledby="fs-fun">
+        <h3 id="fs-fun">Just for fun</h3>
+        <div class="opts faces" id="opts-warp"></div>
+      </section>
+      <p class="note">Worked out from points on your face, on this device. Klatch never recognises who you are.</p>
+    </div>
+    <div class="pane" role="tabpanel" id="pane-fun" aria-labelledby="tab-fun" hidden>
+      <p class="note top">These run on your device. Nothing about your face or voice is sent anywhere.</p>
+      <div class="smart">
+        <label class="switch"><input type="checkbox" data-smart="autoAway" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Pause my video when I step away</strong><small>If you leave your seat, others see "Stepped away" until you're back.</small></span></label>
+        <label class="switch"><input type="checkbox" data-smart="autoFrame" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Keep me in frame</strong><small>Gently zooms and follows you as you move.</small></span></label>
+        <label class="switch"><input type="checkbox" data-smart="autoLight" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Fix low light</strong><small>Brightens your video when the room is dark.</small></span></label>
+        <label class="switch"><input type="checkbox" data-smart="mutedHint" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Tell me when I talk while muted</strong><small>A reminder appears if you speak with your mic off.</small></span></label>
+        <label class="switch"><input type="checkbox" id="expr-toggle" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Expression effects</strong><small>Make a face and something fun happens on your video.</small></span></label>
+      </div>
+      <ul class="expr-list" id="expr-list" hidden></ul>
+      <p class="note">Shortcuts: <kbd>Cmd</kbd> or <kbd>Ctrl</kbd> + <kbd>D</kbd> mutes, + <kbd>E</kbd> turns the camera on or off, and holding <kbd>Space</kbd> talks while muted.</p>
+      <button class="btn secondary" type="button" id="reset-fx">Reset all effects</button>
+    </div>
+  </aside>
+
+  <dialog id="rec-dialog" aria-labelledby="rec-d-title">
+    <form method="dialog">
+      <h2 id="rec-d-title">Record this call?</h2>
+      <p>Everyone will see that you are recording. The video is made on your device and kept only if you save it.</p>
+      <p class="note">In many countries you need everyone's consent to record. It's kind to ask first.</p>
+      <div class="row"><button class="btn secondary" value="cancel">Not now</button><button class="btn primary" value="ok" id="rec-confirm">Start recording</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="saved-dialog" aria-labelledby="saved-title">
+    <form method="dialog">
+      <h2 id="saved-title">Your recording is ready</h2>
+      <p id="saved-info"></p>
+      <div class="row"><button class="btn secondary" value="close">Discard</button><button class="btn primary" type="button" id="save-rec">Save video</button></div>
+    </form>
+  </dialog>
+
+  <div class="dev-menu" id="dev-menu" role="menu" hidden></div>
+
+  <p class="sr-only" id="live" aria-live="polite"></p>
+  <div class="toast" id="toast" role="status" hidden></div>
+</main>
+</body>
+</html>
