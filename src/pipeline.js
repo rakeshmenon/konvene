@@ -86,12 +86,15 @@ export class Pipeline {
   // if frames take longer than a 30 fps budget for a few seconds, step down to 1280, then 960 wide.
   watchSpeed(ms) {
     if (!this.camOn || this.away || this.W <= 960) { this.speed = null; return; }
-    const sp = this.speed || (this.speed = { n: 0, sum: 0 });
+    const now = performance.now();
+    const sp = this.speed || (this.speed = { n: 0, sum: 0, from: now });
     sp.n++;
-    if (sp.n <= 60) return; // let the models warm up first
+    if (sp.n <= 45) { sp.from = now; return; } // let the models warm up first
     sp.sum += ms;
-    if (sp.n < 150) return;
-    const avg = sp.sum / (sp.n - 60);
+    const m = sp.n - 45;
+    // decide after 45 frames, or after 4 seconds on a computer that's far too slow for that
+    if (m < 45 && !(now - sp.from > 4000 && m >= 8)) return;
+    const avg = sp.sum / m;
     this.speed = null;
     if (avg > 34) {
       this.maxW = this.W > 1280 ? 1280 : 960;

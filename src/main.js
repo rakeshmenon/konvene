@@ -1,3 +1,4 @@
+import { dlog } from "./debug.js"; // first, so it sees every connection
 import { Pipeline } from "./pipeline.js";
 import { join, makeRoomCode } from "./net.js";
 import { iceServers } from "./config.js";
@@ -58,7 +59,8 @@ function codeFromHash() {
   return CODE_RE.test(h) ? h : null;
 }
 function goTo(code) { history.replaceState(null, "", (code ? "/" + code : "/") + location.search); }
-function link(code) { return location.origin + "/" + code + location.search; }
+// invite links keep test settings (?local) but not your own troubleshooting log (?debug)
+function link(code) { const q = new URLSearchParams(location.search); q.delete("debug"); const s = q.toString().replace(/=(&|$)/g, "$1"); return location.origin + "/" + code + (s ? "?" + s : ""); }
 function loadFx() {
   try {
     const s = JSON.parse(localStorage.getItem(FX_KEY) || "{}");
@@ -726,6 +728,7 @@ function joinRoom(code) {
   const me = () => ({ name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null });
 
   hello.onMessage = (d, { peerId }) => {
+    dlog(`hello from ${peerId}`);
     const p = state.peers.get(peerId) || { id: peerId };
     p.name = String((d && d.name) || "Guest").slice(0, 20);
     p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away;
@@ -757,13 +760,32 @@ function joinRoom(code) {
     if (text) addMessage(nameOf(peerId), text, false);
   };
 
-  room.onPeerJoin = (peerId) => {
-    if (state.peers.size + 1 >= MAX_PEOPLE && !state.peers.has(peerId)) toast("This call is full (6 people).");
-    hello.send(me(), { target: peerId });
+  // Adding video makes the connection renegotiate. If both people do it at the same moment
+  // ("glare"), Safari on iPhone drops the connection, it reconnects, and the call flickers
+  // between one and two people. So only one side starts: the one with the smaller id sends
+  // straight away, the other sends once that video has arrived (or after 4 s at most).
+  state.mediaWait = new Map();
+  const sendMedia = (peerId) => {
+    const t = state.mediaWait.get(peerId);
+    if (t === "sent" || !state.room || state.room !== room) return;
+    clearTimeout(t);
+    state.mediaWait.set(peerId, "sent");
+    dlog(`sending my video to ${peerId}`);
     room.addStream(state.pipe.stream, { target: peerId, metadata: { kind: "camera" } });
     if (state.screen) room.addStream(state.screen, { target: peerId, metadata: { kind: "screen" } });
   };
+  room.onPeerJoin = (peerId) => {
+    dlog(`peer ${peerId} joined`);
+    if (state.peers.size + 1 >= MAX_PEOPLE && !state.peers.has(peerId)) toast("This call is full (6 people).");
+    hello.send(me(), { target: peerId });
+    state.mediaWait.delete(peerId);
+    if (state.selfId < peerId) sendMedia(peerId);
+    else state.mediaWait.set(peerId, setTimeout(() => sendMedia(peerId), 4000));
+  };
   room.onPeerLeave = (peerId) => {
+    dlog(`peer ${peerId} left`);
+    clearTimeout(state.mediaWait.get(peerId));
+    state.mediaWait.delete(peerId);
     const p = state.peers.get(peerId);
     if (p) { toast(`${p.name || "Someone"} left`); say(`${p.name || "Someone"} left the call`); }
     setRecBy(peerId, false);
@@ -774,6 +796,9 @@ function joinRoom(code) {
     layout();
   };
   room.onPeerStream = (stream, peerId, meta) => {
+    dlog(`video from ${peerId}${meta && meta.kind ? " (" + meta.kind + ")" : ""}`);
+    // their video arrived, so it's our turn (once their renegotiation has settled)
+    if (state.mediaWait.has(peerId) && state.mediaWait.get(peerId) !== "sent") setTimeout(() => sendMedia(peerId), 600);
     const p = state.peers.get(peerId) || { id: peerId, name: "Guest", mic: true, cam: true };
     state.peers.set(peerId, p);
     const isScreen = (meta && meta.kind === "screen") || (p.shareId && stream.id === p.shareId);
