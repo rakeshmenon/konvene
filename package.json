@@ -10,7 +10,7 @@
   "bugs": { "url": "https://github.com/rakeshmenon/klatch/issues" },
   "keywords": ["video-call", "webrtc", "peer-to-peer", "privacy", "mediapipe", "background-blur"],
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": { "node": ">=22" },
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs && node scripts/serve.mjs",
