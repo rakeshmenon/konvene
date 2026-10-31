@@ -466,7 +466,11 @@ function heroWord() {
     g.fillStyle = "#e7eee9";
     g.fillText(word, fit.x, fit.y);
     const src = state.pipe.out;
-    if (state.cam && state.pipe.camOn && !state.pipe.showingCard && src.width) {
+    const live = state.cam && state.pipe.camOn && !state.pipe.showingCard && src.width > 0;
+    // "That's you, live" only makes sense while your camera fills the letters
+    const cap = $("#word-caption");
+    if (cap && cap.style.visibility !== (live ? "visible" : "hidden")) cap.style.visibility = live ? "visible" : "hidden";
+    if (live) {
       g.globalCompositeOperation = "source-in";
       const sc = Math.max(W / src.width, H / src.height);
       const dw = src.width * sc, dh = src.height * sc;
