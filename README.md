@@ -37,6 +37,7 @@ Most video apps promise to look after your data. Konvene is built so there is no
 | **Face** | Smooth skin, brighter eyes, whiter teeth, slimmer face, bigger eyes, lip colour, blush, and six fun warps |
 | **Light and looks** | Studio, ring light, golden hour, spotlight and more; nine colour looks |
 | **Smart** | Pauses your video when you step away, keeps you in frame, fixes low light, tells you when you talk while muted |
+| **Captions** | Live captions made on the devices in the call (Chrome on a computer), shown to whoever turns them on |
 | **Together** | Screen sharing with spotlight, chat, reactions, raise hand, pin, full screen, in-browser recording |
 | **Devices** | Pick camera, microphone and speakers from the call controls |
 
@@ -112,7 +113,7 @@ npx playwright install chromium   # once
 npm test
 ```
 
-The test runs a real two-person call in headless Chromium with fake devices: joining, muting, chat, screen sharing, recording, device switching, refresh rejoining, weak connections, passcodes and the waiting room, and that no request leaves the site. Set `FACE_VIDEO` to a `.y4m` video of a face to also test face tracking and effects.
+The test runs a real two-person call in headless Chromium with fake devices: joining, muting, chat, screen sharing, recording, device switching, refresh rejoining, weak connections, passcodes, the waiting room, live captions (with a stand-in speech engine), and that no request leaves the site. Set `FACE_VIDEO` to a `.y4m` video of a face to also test face tracking and effects.
 
 ## Contributing
 

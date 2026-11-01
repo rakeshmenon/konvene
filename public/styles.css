@@ -616,3 +616,9 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 .pass-line { margin: 0; font-size: .9rem; color: var(--ink-2); }
 .pass-line code { margin-left: .4rem; font: 600 .95rem ui-monospace, "SF Mono", Menlo, monospace; color: var(--ink); letter-spacing: .04em; }
 .door-box .btn { justify-self: start; }
+
+/* ---------- live captions ---------- */
+.captions { position: absolute; left: 50%; bottom: 1rem; transform: translateX(-50%); z-index: 15; width: min(760px, calc(100% - 2rem)); display: grid; gap: .35rem; pointer-events: none; }
+.cap { margin: 0; padding: .45rem .8rem; border-radius: 10px; background: rgba(8, 16, 13, .78); color: #fff; font-size: clamp(1rem, 1.6vw, 1.3rem); line-height: 1.4; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.cap strong { margin-right: .5rem; color: #b8e3cf; font-weight: 600; }
+#cc-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
