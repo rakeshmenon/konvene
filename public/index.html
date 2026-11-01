@@ -34,6 +34,7 @@
   <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M3 19.5a6 6 0 0 1 12 0" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M15.5 5.6a3.2 3.2 0 0 1 0 5.8M17.5 14.3a6 6 0 0 1 3.5 5.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
   <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="15" cy="7" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="9" cy="17" r="2.2" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
   <symbol id="i-pin" viewBox="0 0 24 24"><path d="M14.5 3.5l6 6-2.2.8-3.5 3.5-.5 4-2.3 2.2L4 12l2.2-2.3 4-.5 3.5-3.5.8-2.2ZM8 16l-4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="12" y="11.5" width="7" height="5.5" rx="1.2" fill="currentColor"/></symbol>
   <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -88,12 +89,24 @@
           <h2 id="privacy-title">Private by design, not by policy.</h2>
           <p class="section-lede">Most video apps promise to look after your data. Konvene is built so there is nothing to look after.</p>
         </div>
-        <figure class="route" aria-label="Your call goes directly from you to them. Konvene has no server in the call.">
-          <div class="route-cloud"><span>Konvene servers</span><em>Not in your call</em></div>
-          <div class="route-line">
-            <span class="node">You</span>
-            <span class="wire"><span>Encrypted</span></span>
-            <span class="node">Them</span>
+        <figure class="route" aria-label="Most video apps send your call through their servers. Konvene sends it straight from you to the people you call, encrypted, with nothing in between.">
+          <div class="route-row is-them">
+            <p class="route-label">Most video apps</p>
+            <div class="route-line" aria-hidden="true">
+              <span class="node">You</span>
+              <span class="wire"></span>
+              <span class="hub">Their servers<small>your call passes through</small></span>
+              <span class="wire"></span>
+              <span class="node">Them</span>
+            </div>
+          </div>
+          <div class="route-row is-us">
+            <p class="route-label">Konvene</p>
+            <div class="route-line" aria-hidden="true">
+              <span class="node">You</span>
+              <span class="wire"><span>Straight to them, encrypted</span></span>
+              <span class="node">Them</span>
+            </div>
           </div>
         </figure>
       </div>
@@ -232,6 +245,7 @@
           <div class="react-pop" id="react-pop" hidden></div>
         </div>
         <button class="round" type="button" data-open-fx aria-expanded="false" aria-label="Effects" title="Effects"><svg><use href="#i-studio"/></svg></button>
+        <button class="round" type="button" id="pip-btn" aria-pressed="false" aria-label="Picture in picture" title="Picture in picture: keep the call on top of other windows" hidden><svg><use href="#i-pip"/></svg></button>
         <button class="round" type="button" id="rec-btn" aria-pressed="false" aria-label="Record" title="Record"><svg><use href="#i-rec"/></svg><span class="rec-time" id="rec-time" hidden></span></button>
         <button class="leave" type="button" id="leave-btn" aria-label="Leave call" title="Leave call"><svg><use href="#i-leave"/></svg></button>
       </div>
@@ -324,6 +338,14 @@
       <button class="btn secondary" type="button" id="reset-fx">Reset all effects</button>
     </div>
   </aside>
+
+  <dialog id="leave-dialog" aria-labelledby="leave-d-title">
+    <form method="dialog">
+      <h2 id="leave-d-title">Leave the call?</h2>
+      <p id="leave-d-text">You can come back with the same link while the call is going.</p>
+      <div class="row"><button class="btn secondary" value="stay" autofocus>Stay</button><button class="btn danger" value="leave" id="leave-confirm">Leave call</button></div>
+    </form>
+  </dialog>
 
   <dialog id="rec-dialog" aria-labelledby="rec-d-title">
     <form method="dialog">

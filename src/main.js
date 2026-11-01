@@ -1,5 +1,6 @@
 import { dlog } from "./debug.js"; // first, so it sees every connection
 import { Pipeline } from "./pipeline.js";
+import { Pip, PIP_DOC, PIP_VIDEO } from "./pip.js";
 import { join, makeRoomCode } from "./net.js";
 import { iceServers } from "./config.js";
 import { CallRecorder } from "./recorder.js";
@@ -10,6 +11,8 @@ import { LIPS, BLUSH, WARPS, FACE_DEFAULTS } from "./face.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+// the call's tiles can move into a picture-in-picture window, so look them up from the stage itself
+const stageEl = () => state.stageEl || (state.stageEl = document.getElementById("stage"));
 const LOCAL = new URLSearchParams(location.search).has("local");
 const MAX_PEOPLE = 6;
 const FX_KEY = "gr_fx";
@@ -346,7 +349,7 @@ async function switchDevice(kind, id) {
       if (state.pipe.micStream) await swapMic(id);
     } else if (kind === "speaker") {
       state.sinkId = id;
-      for (const v of $$("#tiles video, #spotlight video")) if (v.setSinkId) v.setSinkId(id).catch(() => {});
+      for (const v of $$("#tiles video, #spotlight video", stageEl())) if (v.setSinkId) v.setSinkId(id).catch(() => {});
     }
     state.devices[kind] = id;
     saveDevices();
@@ -499,7 +502,8 @@ function makeLocalView(mirror) {
     g.drawImage(state.pipe.out, 0, 0);
     // your camera is shown mirrored, like a mirror; the "camera off" card has text, so it isn't
     if (mirror) c.classList.toggle("mirror", !state.pipe.showingCard);
-    requestAnimationFrame(draw);
+    // drawn by the window it's in (the picture-in-picture window keeps going when this tab is hidden)
+    (c.ownerDocument.defaultView || window).requestAnimationFrame(draw);
   };
   requestAnimationFrame(draw);
   return c;
@@ -526,7 +530,7 @@ function makeTile(key, { screen = false, me = false } = {}) {
   full.append(icon("i-expand"));
   actions.append(pin, full);
   li.append(media, hand, label, actions);
-  $("#tiles").appendChild(li);
+  $("#tiles", stageEl()).appendChild(li);
   return li;
 }
 
@@ -593,7 +597,7 @@ function removeTile(id) {
   layout();
 }
 
-function allTiles() { return $$("#tiles .tile, #spotlight .tile"); }
+function allTiles() { return $$("#tiles .tile, #spotlight .tile", stageEl()); }
 
 function layout() {
   const tiles = allTiles();
@@ -603,7 +607,7 @@ function layout() {
   if (!spotKey) { const s = tiles.find((t) => t.classList.contains("screen")); if (s) spotKey = s.dataset.key; }
   // only worth a spotlight when someone else is around, or you're sharing
   if (spotKey && tiles.length < 2) spotKey = null;
-  const spot = $("#spotlight"), list = $("#tiles");
+  const spot = $("#spotlight", stageEl()), list = $("#tiles", stageEl());
   for (const t of tiles) {
     const target = t.dataset.key === spotKey ? spot : list;
     if (t.parentElement !== target) {
@@ -617,8 +621,8 @@ function layout() {
     pin.title = on ? "Unpin" : "Pin";
   }
   spot.hidden = !spotKey;
-  $("#stage").classList.toggle("has-spot", !!spotKey);
-  const n = $$("#tiles .tile").length;
+  stageEl().classList.toggle("has-spot", !!spotKey);
+  const n = $$("#tiles .tile", stageEl()).length;
   list.dataset.n = String(Math.min(n, 7));
   const people = 1 + state.peers.size;
   $("#count").textContent = people === 1 ? "Just you" : `${people} in the call`;
@@ -973,6 +977,7 @@ async function setMic(on) {
   if (state.me) state.me.mic = on;
   $$('[data-toggle="mic"]').forEach((b) => { b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Turn off microphone" : "Turn on microphone"); $("use", b).setAttribute("href", on ? "#i-mic" : "#i-mic-off"); b.classList.toggle("off", !on); });
   if (state.inCall) { renderTile(state.selfId); state.broadcastStatus(); }
+  if (state.pip) state.pip.sync();
 }
 async function setCam(on) {
   if (on) {
@@ -986,6 +991,7 @@ async function setCam(on) {
   if (state.me) state.me.cam = on;
   $$('[data-toggle="cam"]').forEach((b) => { b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Turn off camera" : "Turn on camera"); $("use", b).setAttribute("href", on ? "#i-cam" : "#i-cam-off"); b.classList.toggle("off", !on); });
   if (state.inCall) { state.broadcastStatus(); if (state.panel === "people") renderPeople(); }
+  if (state.pip) state.pip.sync();
 }
 function setHand(on) {
   state.hand = on;
@@ -1134,6 +1140,16 @@ function parseCode(text) {
   return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
 
+function leaveCall() {
+  if (state.screen) stopShare();
+  forgetCall();
+  try { navigator.mediaSession.setActionHandler("enterpictureinpicture", null); } catch { /* not supported */ }
+  if (state.pip) state.pip.close();
+  if (state.room) state.room.leave();
+  state.pipe.stop();
+  location.href = "/" + location.search;
+}
+
 async function enterCall() {
   state.audio.resume();
   const code = codeFromHash() || makeRoomCode();
@@ -1146,6 +1162,8 @@ async function enterCall() {
   state.inCall = true;
   for (const v of $$("#lobby-preview canvas")) v.remove();
   screen("call");
+  // Chrome 120+: switching to another tab opens the call in picture-in-picture (needs the mic in use, which a call always has)
+  try { navigator.mediaSession.setActionHandler("enterpictureinpicture", () => state.pip.show()); } catch { /* not supported */ }
   $("#room-code").textContent = code;
   hookMic();
   renderTile(state.selfId);
@@ -1262,14 +1280,39 @@ async function init() {
     addMessage(state.name, text, true);
     inp.value = "";
   });
-  $("#stage").addEventListener("click", onTileAction);
+  stageEl().addEventListener("click", onTileAction);
+  // hanging up asks first (and warns about an unsaved recording)
   $("#leave-btn").addEventListener("click", () => {
-    if (state.recorder.recording && !confirm("You're recording. Leave and lose the recording?")) return;
-    if (state.screen) stopShare();
-    forgetCall();
-    if (state.room) state.room.leave();
-    state.pipe.stop();
-    location.href = "/" + location.search;
+    const d = $("#leave-dialog");
+    $("#leave-d-text").textContent = state.recorder.recording
+      ? "You're recording. Leaving stops the recording and it won't be saved."
+      : "You can come back with the same link while the call is going.";
+    d.returnValue = "";
+    d.showModal();
+  });
+  $("#leave-dialog").addEventListener("close", () => { if ($("#leave-dialog").returnValue === "leave") leaveCall(); });
+
+  // picture-in-picture: the Pop out button, and Chrome opens it by itself when you switch tabs
+  state.pip = new Pip({
+    stage: stageEl(),
+    sprite: document.querySelector("body > svg"),
+    ui: {
+      mic: () => state.mic,
+      cam: () => state.cam,
+      toggleMic: () => setMic(!state.mic).then(saveAv),
+      toggleCam: () => setCam(!state.cam).then(saveAv),
+      leave: () => leaveCall(),
+      pickVideo: () => {
+        const vids = $$("#spotlight video, #tiles .tile:not(.me) video", stageEl()).filter((v) => v.videoWidth > 0);
+        return vids[0] || null;
+      },
+      onChange: (open) => { $("#pip-btn").setAttribute("aria-pressed", String(open)); },
+    },
+  });
+  $("#pip-btn").hidden = !(PIP_DOC || PIP_VIDEO);
+  $("#pip-btn").addEventListener("click", () => {
+    if (!PIP_DOC && !state.pip.ui.pickVideo()) { toast("Picture in picture starts once someone else is in the call."); return; }
+    state.pip.toggle();
   });
   addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
@@ -1284,7 +1327,7 @@ async function init() {
     const i = items.indexOf(document.activeElement);
     items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
   });
-  addEventListener("click", () => { state.audio.resume(); for (const v of $$("#tiles video, #spotlight video")) if (v.paused) v.play().catch(() => {}); });
+  addEventListener("click", () => { state.audio.resume(); for (const v of $$("#tiles video, #spotlight video", stageEl())) if (v.paused) v.play().catch(() => {}); });
   speakingLoop();
   window.__gr = state; // for tests
 }
