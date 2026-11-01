@@ -513,6 +513,12 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 .cap { margin: 0; padding: .45rem .8rem; border-radius: 10px; background: rgba(8, 16, 13, .78); color: #fff; font-size: clamp(1rem, 1.6vw, 1.3rem); line-height: 1.4; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .cap strong { margin-right: .5rem; color: #b8e3cf; font-weight: 600; }
 #cc-btn[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+/* phones and narrow windows stack the people, so captions sit under them instead of covering
+   the bottom person's face and name */
+@media (max-width: 60rem) {
+  .stage { align-content: center; }
+  .captions { position: static; transform: none; width: 100%; margin-top: .6rem; }
+}
 .field-hint { font-size: .78rem; color: var(--ink-3); }
 
 

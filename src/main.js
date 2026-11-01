@@ -7,6 +7,7 @@ import { iceServers, CONFIG } from "./config.js";
 import { CallRecorder } from "./recorder.js";
 import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
 import { initHome } from "./home.js";
+import { RoomEcho } from "./roomecho.js";
 import { CAN_LOCAL, findLanguage, install as installCaptions, Transcriber } from "./captions.js";
 import { LOOKS, LIGHTS } from "./fx.js";
 import { BACKGROUNDS } from "./backgrounds.js";
@@ -31,6 +32,8 @@ const state = {
   me: null,
   peers: new Map(), // id -> { id, name, mic, cam, hand, stream, video, tile, analyser, screen: { id, stream, video, tile } }
   mic: false, // camera and microphone are off until you turn them on
+  echoCards: new Map(), // id -> "same room?" card
+  roomEcho: null,
   quiet: false, // sound off on this device: no microphone, others' audio muted (a second device in the same room)
   cam: false,
   hand: false,
@@ -874,6 +877,7 @@ function joinRoom(code) {
     if (!p) return;
     const raised = !p.hand && d.hand;
     p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.quiet = !!d.quiet;
+    if (p.quiet) dismissEcho(peerId);
     if (raised) { toast(`${p.name || "Someone"} raised their hand`); say(`${p.name || "Someone"} raised their hand`); }
     renderTile(peerId);
   });
@@ -987,6 +991,7 @@ function dropPeer(peerId, quiet) {
   const p = state.peers.get(peerId);
   if (p && !quiet) { toast(`${p.name || "Someone"} left`); say(`${p.name || "Someone"} left the call`); }
   setRecBy(peerId, false);
+  dismissEcho(peerId);
   if (p && p.screen) removeScreenTile(peerId);
   removeTile(peerId);
   if (state.recorder) { state.recorder.removeAudio(peerId); state.recorder.removeAudio("screen:" + peerId); }
@@ -1065,6 +1070,42 @@ function becomeIn(how) {
   for (const id of state.conn) state.actions.hello.send(helloFor(id), { target: id });
   for (const [id, p] of [...state.pending]) if (p.in) promote(id);
   if (!state.inCall) showCall();
+  // listen for another device in this room (levels only, on this device)
+  if (!state.roomEcho) {
+    state.roomEcho = new RoomEcho({
+      mic: () => (state.quiet ? null : micAnalyser),
+      others: () => [...state.peers].filter(([, p]) => !p.quiet && p.analyser).map(([id, p]) => [id, p.analyser]),
+      onMatch: sameRoom,
+    });
+  }
+  state.roomEcho.start();
+}
+
+// another device's audio keeps following this room's sound: almost certainly two devices in one
+// room, which echoes. Suggest the fix; never change anything on our own.
+function sameRoom(id) {
+  const p = state.peers.get(id);
+  if (!p || p.quiet || state.quiet || !state.inCall || state.echoCards.has(id)) return;
+  dlog(`${id} sounds like this room`);
+  const card = el("div", "knock echo-card");
+  card.setAttribute("role", "alert");
+  const msg = el("p");
+  msg.append(document.createTextNode("Sounds like you're in the same room as "), el("strong", null, p.name || "someone"), document.createTextNode(". Turn off sound on one device to stop the echo."));
+  const no = el("button", "btn secondary small", "Not now");
+  const yes = el("button", "btn primary small", "Turn off sound here");
+  no.type = yes.type = "button";
+  no.addEventListener("click", () => dismissEcho(id));
+  yes.addEventListener("click", () => { dismissEcho(id); setQuiet(true); toast("Sound is off on this device", 2500); });
+  card.append(msg, el("span", "knock-btns"));
+  card.lastChild.append(no, yes);
+  $("#knocks", stageEl()).append(card);
+  state.echoCards.set(id, card);
+  say(`Sounds like you're in the same room as ${p.name || "someone"}.`);
+}
+function dismissEcho(id) {
+  const c = state.echoCards.get(id);
+  if (c) c.remove();
+  state.echoCards.delete(id);
 }
 
 function setLock(on, age = 0, announce = true) {
@@ -1161,6 +1202,8 @@ function exitRoom() {
   if (state.recorder.recording) toggleRecording();
   for (const id of [...state.peers.keys()]) dropPeer(id, true);
   for (const id of [...state.knocks.keys()]) dismissKnock(id);
+  for (const id of [...state.echoCards.keys()]) dismissEcho(id);
+  if (state.roomEcho) state.roomEcho.stop();
   state.pending.clear(); state.conn.clear();
   state.room = null; state.actions = null; state.quality = null;
   try { room.leave(); } catch { /* gone */ }
@@ -1524,6 +1567,7 @@ function setQuiet(on) {
   document.body.classList.toggle("quiet", on);
   if ($("#quiet")) $("#quiet").checked = on;
   if (on && state.mic) setMic(false);
+  if (on) for (const id of [...state.echoCards.keys()]) dismissEcho(id);
   for (const v of $$("video[data-remote]", stageEl())) v.muted = on;
   $$('[data-toggle="mic"]').forEach((b) => { b.title = on ? "Sound is off on this device" : "Microphone"; });
   if (state.inCall) { renderTile(state.selfId); state.broadcastStatus(); }

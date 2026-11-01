@@ -15,6 +15,25 @@ const faceOk = (c, m) => (FACE ? ok(c, m) : console.log(`SKIP  ${m} (set FACE_VI
 const args = ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream", "--autoplay-policy=no-user-gesture-required",
   "--disable-renderer-backgrounding", "--auto-select-desktop-capture-source=Entire screen", "--auto-accept-this-tab-capture", "--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows", "--enable-unsafe-swiftshader"];
 if (process.env.FACE_VIDEO) args.push(`--use-file-for-fake-video-capture=${process.env.FACE_VIDEO}`);
+// same-room detection: another device's audio that follows this room's sound matches; a
+// different person talking doesn't (loudness curves only, see src/roomecho.js)
+{
+  const { follow } = await import("../src/roomecho.js");
+  let seed = 3;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const speech = (n) => { const a = []; let on = false; for (let i = 0; i < n; i++) { if (rnd() < 0.06) on = !on; a.push(on ? -1.2 + rnd() * 0.5 : -3.5 + rnd() * 0.3); } return a; };
+  let same = 0, diff = 0;
+  for (let t = 0; t < 30; t++) {
+    const a = speech(192), b = speech(192), lag = 2 + Math.floor(rnd() * 20);
+    const room = a.map((v, i) => (i >= lag ? a[i - lag] - 0.6 + (rnd() - 0.5) * 0.4 : -3.5));
+    const s = follow(a, room), d = follow(a, b);
+    if (s && s.r >= 0.7 && s.lag === lag) same++;
+    if (d && d.r >= 0.7) diff++;
+  }
+  ok(same === 30 && diff <= 1, `same-room detection: ${same}/30 same-room matches, ${diff}/30 false matches`);
+  ok(follow(Array(192).fill(-3.5), Array(192).fill(-3.5)) === null, "silence is never called a match");
+}
+
 const browser = await chromium.launch({ args });
 const ctx = await browser.newContext({ viewport: { width: 1360, height: 820 }, permissions: ["camera", "microphone"] });
 const outside = [];
