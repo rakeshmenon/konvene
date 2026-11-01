@@ -42,6 +42,17 @@ const state = {
   recBy: new Map(),
   actions: null,
   inCall: false,
+  // who can get in (door section below)
+  pass: "", // the call's passcode ("" for none)
+  lock: false, // ask before letting people in (the waiting room)
+  lockAt: 0,
+  admitted: false, // are we in the call, or still asking?
+  how: null, // how we got in: "host" | "admitted" | "open" (the call didn't ask)
+  inAt: 0,
+  pending: new Map(), // connected, but not (yet) in the call with us: id -> same shape as peers
+  conn: new Set(), // everyone connected, in the call or not
+  knocks: new Map(), // id -> the "wants to join" card
+  denied: new Set(),
 };
 
 /* ---------------- small helpers ---------------- */
@@ -64,7 +75,19 @@ function codeFromHash() {
 }
 function goTo(code) { history.replaceState(null, "", (code ? "/" + code : "/") + location.search); }
 // invite links keep test settings (?local) but not your own troubleshooting log (?debug)
-function link(code) { const q = new URLSearchParams(location.search); q.delete("debug"); const s = q.toString().replace(/=(&|$)/g, "$1"); return location.origin + "/" + code + (s ? "?" + s : ""); }
+// The passcode and "ask first" ride after the #, which browsers never send to any server.
+function link(code, withPass = true) {
+  const q = new URLSearchParams(location.search); q.delete("debug");
+  const s = q.toString().replace(/=(&|$)/g, "$1");
+  const h = [];
+  if (withPass && state.pass) h.push("p=" + encodeURIComponent(state.pass));
+  if (state.lock) h.push("wait");
+  return location.origin + "/" + code + (s ? "?" + s : "") + (h.length ? "#" + h.join("&") : "");
+}
+function hashParams(hash) {
+  const q = new URLSearchParams(String(hash || "").replace(/^#/, ""));
+  return { pass: (q.get("p") || "").slice(0, 40), wait: q.has("wait") };
+}
 function loadFx() {
   try {
     const s = JSON.parse(localStorage.getItem(FX_KEY) || "{}");
@@ -365,7 +388,7 @@ async function switchDevice(kind, id) {
 async function swapMic(id) {
   const { oldTrack, newTrack, stop } = await state.pipe.openMic(id);
   if (state.room && oldTrack) state.room.replaceTrack(oldTrack, newTrack);
-  else if (state.room && !oldTrack) state.room.addStream(state.pipe.stream, { metadata: { kind: "camera" } });
+  else if (state.room && !oldTrack && state.peers.size) state.room.addStream(state.pipe.stream, { target: [...state.peers.keys()], metadata: { kind: "camera" } });
   stop();
   hookMic();
 }
@@ -719,144 +742,411 @@ function newVideo(muted) {
   return v;
 }
 
+function myStatus() {
+  return { name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null };
+}
+
 function joinRoom(code) {
   state.code = code;
-  const room = join(code, { local: LOCAL, turn: state.turn || [] });
+  const room = join(code, { local: LOCAL, turn: state.turn || [], pass: state.pass, onJoinError: (e) => wrongPass(room, e) });
   state.room = room;
   state.selfId = room.selfId;
   state.me = { id: state.selfId, name: state.name, mic: state.mic, cam: state.cam, hand: state.hand };
+  state.peers.clear(); state.pending.clear(); state.conn.clear();
   const hello = room.makeAction("hello");
+  const door = room.makeAction("door"); // waiting room: knock, let in, ask first on or off
   const status = room.makeAction("status");
   const rec = room.makeAction("rec");
   const share = room.makeAction("share");
   const chat = room.makeAction("chat");
   const linkA = room.makeAction("link"); // "this is how well I reach you"
   const viewA = room.makeAction("view"); // "I show you this many pixels wide"
-  state.actions = { hello, status, rec, share, chat, link: linkA, view: viewA };
+  // Everything except hello and door goes only to people who are in the call with us,
+  // never to someone still waiting to be let in.
+  const onlyIn = (a) => ({
+    send(d, o = {}) {
+      const ids = (o.target != null ? [].concat(o.target) : [...state.peers.keys()]).filter((id) => state.peers.has(id));
+      if (ids.length) a.send(d, { target: ids });
+    },
+  });
+  state.actions = { hello, door, status: onlyIn(status), rec: onlyIn(rec), share: onlyIn(share), chat: onlyIn(chat), link: onlyIn(linkA), view: onlyIn(viewA) };
+  const mine = (fn) => (d, meta) => { if (state.room === room) fn(d || {}, meta); };
   state.quality = new Quality({
-    conns: () => (room.peerConns ? room.peerConns() : []),
+    conns: () => (room.peerConns ? room.peerConns() : []).filter(([id]) => state.peers.has(id)),
     camTrack: () => state.pipe.stream.getVideoTracks()[0],
     out: () => ({ w: state.pipe.W, h: state.pipe.H }),
     onTier: (id, tier) => {
       dlog(`link to ${id}: ${tier}`);
-      linkA.send({ t: tier }, { target: id });
+      state.actions.link.send({ t: tier }, { target: id });
       renderSignal(id);
       if (tier === "bad") toast(`The connection to ${nameOf(id)} is very weak, so video between you is paused. You can still hear each other.`, 6000);
     },
   });
-  linkA.onMessage = (d, { peerId }) => {
+  linkA.onMessage = mine((d, { peerId }) => {
     const p = state.peers.get(peerId);
     if (!p) return;
-    p.theirTier = TIERS.includes(d && d.t) ? d.t : "good";
+    p.theirTier = TIERS.includes(d.t) ? d.t : "good";
     renderSignal(peerId);
-  };
-  viewA.onMessage = (d, { peerId }) => state.quality.setView(peerId, Math.max(0, Math.min(8000, Number(d && d.w) || 0)));
+  });
+  viewA.onMessage = mine((d, { peerId }) => { if (state.peers.has(peerId)) state.quality.setView(peerId, Math.max(0, Math.min(8000, Number(d.w) || 0))); });
 
-  const me = () => ({ name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null });
-
-  hello.onMessage = (d, { peerId }) => {
-    dlog(`hello from ${peerId}`);
-    const p = state.peers.get(peerId) || { id: peerId };
-    p.name = String((d && d.name) || "Guest").slice(0, 20);
-    p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away;
+  hello.onMessage = mine((d, { peerId }) => {
+    dlog(`hello from ${peerId}${d.in ? "" : " (asking to join)"}`);
+    const p = state.peers.get(peerId) || state.pending.get(peerId) || { id: peerId };
+    if (d.name != null) p.name = String(d.name || "Guest").slice(0, 20);
+    if ("mic" in d) { p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.rec = !!d.rec; }
     if (d.share) p.shareId = d.share;
-    const isNew = !state.peers.has(peerId) || !p.greeted;
-    p.greeted = true;
-    state.peers.set(peerId, p);
-    if (isNew) { toast(`${p.name} joined`); say(`${p.name} joined the call`); }
-    if (d.rec) setRecBy(peerId, true);
-    renderTile(peerId);
-  };
-  status.onMessage = (d, { peerId }) => {
+    p.in = !!d.in; p.how = String(d.how || ""); p.age = Number(d.age) || 0;
+    // the waiting room is the call's setting: learn it from the people in it
+    if (p.in && d.lock === true) {
+      // we walked in, but this call was already asking first: go back and knock
+      if (state.admitted && state.how === "open" && (Number(d.lockAge) || 0) > performance.now() - state.inAt + 3000) { regate(); return; }
+      if (!state.lock) setLock(true, Number(d.lockAge) || 0, false);
+    }
+    if (state.peers.has(peerId)) {
+      if (!p.in) { dropPeer(peerId, true); state.pending.set(peerId, p); return; }
+      greet(p);
+      if (p.rec) setRecBy(peerId, true);
+      renderTile(peerId);
+      return;
+    }
+    state.pending.set(peerId, p);
+    if (state.admitted && p.in) {
+      // walked in without asking after the call started asking: ask them to knock instead
+      if (state.lock && p.how === "open" && p.age + 3000 < performance.now() - state.lockAt) {
+        door.send({ id: peerId, wait: true }, { target: peerId });
+        return;
+      }
+      promote(peerId);
+    } else if (state.admitted && !p.in) {
+      if (state.lock && !state.denied.has(peerId)) showKnock(peerId);
+    } else if (!state.admitted && p.in) {
+      if (d.lock !== true) becomeIn("open"); // this call doesn't ask: walk in
+      else waitText("Asking to join", "Someone in the call will let you in. You can keep checking your camera and microphone.");
+    }
+  });
+  door.onMessage = mine((d, { peerId }) => {
+    const from = state.peers.get(peerId) || state.pending.get(peerId);
+    if (!from || !from.in) return; // only people in the call open the door
+    if (typeof d.lock === "boolean") {
+      setLock(d.lock, 0, false);
+      if (!d.lock && !state.admitted) becomeIn("open");
+      if (state.admitted) toast(d.lock ? `${from.name || "Someone"} turned on asking before letting people in` : `${from.name || "Someone"} turned off asking first`, 4000);
+      return;
+    }
+    if (d.id === state.selfId) {
+      if (state.admitted) { if (d.wait && state.how === "open") regate(); return; }
+      if (d.ok === true) becomeIn("admitted");
+      else if (d.ok === false) { const code = state.code; exitRoom(); showLobby(code); lobbyNote("Someone in the call didn't let you in."); }
+      return;
+    }
+    // someone else in the call answered a knock
+    if (d.ok === false) state.denied.add(String(d.id));
+    dismissKnock(String(d.id));
+  });
+  status.onMessage = mine((d, { peerId }) => {
     const p = state.peers.get(peerId);
     if (!p) return;
     const raised = !p.hand && d.hand;
     p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away;
     if (raised) { toast(`${p.name || "Someone"} raised their hand`); say(`${p.name || "Someone"} raised their hand`); }
     renderTile(peerId);
-  };
-  rec.onMessage = (d, { peerId }) => setRecBy(peerId, !!d.on);
-  share.onMessage = (d, { peerId }) => {
+  });
+  rec.onMessage = mine((d, { peerId }) => { if (state.peers.has(peerId)) setRecBy(peerId, !!d.on); });
+  share.onMessage = mine((d, { peerId }) => {
     const p = state.peers.get(peerId);
     if (!p) return;
     if (d.on) { p.shareId = d.id; say(`${p.name || "Someone"} started presenting`); }
     else { p.shareId = null; if (p.screen) { removeScreenTile(peerId); p.screen = null; } }
-  };
-  chat.onMessage = (d, { peerId }) => {
-    const text = String((d && d.text) || "").slice(0, 500);
+  });
+  chat.onMessage = mine((d, { peerId }) => {
+    if (!state.peers.has(peerId)) return;
+    const text = String(d.text || "").slice(0, 500);
     if (text) addMessage(nameOf(peerId), text, false);
-  };
+  });
 
-  // Adding video makes the connection renegotiate. If both people do it at the same moment
-  // ("glare"), Safari on iPhone drops the connection, it reconnects, and the call flickers
-  // between one and two people. So only one side starts: the one with the smaller id sends
-  // straight away, the other sends once that video has arrived (or after 4 s at most).
   state.mediaWait = new Map();
-  const sendMedia = (peerId) => {
-    const t = state.mediaWait.get(peerId);
-    if (t === "sent" || !state.room || state.room !== room) return;
-    clearTimeout(t);
-    state.mediaWait.set(peerId, "sent");
-    dlog(`sending my video to ${peerId}`);
-    room.addStream(state.pipe.stream, { target: peerId, metadata: { kind: "camera" } });
-    if (state.screen) room.addStream(state.screen, { target: peerId, metadata: { kind: "screen" } });
-  };
   room.onPeerJoin = (peerId) => {
-    dlog(`peer ${peerId} joined`);
-    const known = state.peers.get(peerId);
-    if (known) known.sentView = 0; // a reconnect: tell them our tile size again
-    setTimeout(sendViews, 1500);
-    if (state.peers.size + 1 >= MAX_PEOPLE && !state.peers.has(peerId)) toast("This call is full (6 people).");
-    hello.send(me(), { target: peerId });
-    state.mediaWait.delete(peerId);
-    if (state.selfId < peerId) sendMedia(peerId);
-    else state.mediaWait.set(peerId, setTimeout(() => sendMedia(peerId), 4000));
+    if (state.room !== room) return;
+    dlog(`peer ${peerId} connected`);
+    state.conn.add(peerId);
+    hello.send(helloFor(peerId), { target: peerId });
   };
   room.onPeerLeave = (peerId) => {
+    if (state.room !== room) return;
     dlog(`peer ${peerId} left`);
-    clearTimeout(state.mediaWait.get(peerId));
-    state.mediaWait.delete(peerId);
-    const p = state.peers.get(peerId);
-    if (p) { toast(`${p.name || "Someone"} left`); say(`${p.name || "Someone"} left the call`); }
-    setRecBy(peerId, false);
-    if (p && p.screen) removeScreenTile(peerId);
-    removeTile(peerId);
-    if (state.recorder) { state.recorder.removeAudio(peerId); state.recorder.removeAudio("screen:" + peerId); }
-    state.peers.delete(peerId);
-    layout();
+    state.conn.delete(peerId);
+    if (state.pending.delete(peerId)) dismissKnock(peerId);
+    if (state.peers.has(peerId)) dropPeer(peerId, false);
   };
   room.onPeerStream = (stream, peerId, meta) => {
+    if (state.room !== room) return;
     dlog(`video from ${peerId}${meta && meta.kind ? " (" + meta.kind + ")" : ""}`);
-    // their video arrived, so it's our turn (once their renegotiation has settled)
-    if (state.mediaWait.has(peerId) && state.mediaWait.get(peerId) !== "sent") setTimeout(() => sendMedia(peerId), 600);
-    const p = state.peers.get(peerId) || { id: peerId, name: "Guest", mic: true, cam: true };
-    state.peers.set(peerId, p);
-    const isScreen = (meta && meta.kind === "screen") || (p.shareId && stream.id === p.shareId);
-    if (isScreen) {
-      if (!p.screen) p.screen = { id: stream.id };
-      if (p.screen.stream !== stream) {
-        p.screen.stream = stream;
-        if (!p.screen.video) p.screen.video = newVideo(false);
-        p.screen.video.srcObject = stream;
-        p.screen.video.play().catch(() => {});
-        if (state.recorder) state.recorder.addAudio("screen:" + peerId, stream);
-        toast(`${p.name || "Someone"} is presenting`);
-      }
-      renderScreenTile(peerId);
-      return;
-    }
-    if (!p.video) p.video = newVideo(false);
-    if (p.stream !== stream) {
-      p.stream = stream;
-      p.video.srcObject = stream;
-      p.video.play().catch(() => toast("Tap anywhere to hear everyone", 5000));
-      watchLevel(peerId, stream);
-      if (state.recorder) state.recorder.addAudio(peerId, stream);
-    }
-    renderTile(peerId);
+    // arrived a moment before they told us they're in: keep it for then
+    const w = state.pending.get(peerId);
+    if (w && !state.peers.has(peerId)) { (w.early || (w.early = [])).push([stream, meta]); return; }
+    gotStream(stream, peerId, meta);
   };
-  room.addStream(state.pipe.stream, { metadata: { kind: "camera" } });
-  state.broadcastStatus = () => status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away });
+  state.broadcastStatus = () => state.actions && state.actions.status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away });
+}
+
+// Adding video makes the connection renegotiate. If both people do it at the same moment
+// ("glare"), Safari on iPhone drops the connection, it reconnects, and the call flickers
+// between one and two people. So only one side starts: the one with the smaller id sends
+// straight away, the other sends once that video has arrived (or after 4 s at most).
+function sendMedia(peerId) {
+  const room = state.room;
+  const t = state.mediaWait.get(peerId);
+  if (t === "sent" || !room || !state.peers.has(peerId)) return;
+  clearTimeout(t);
+  state.mediaWait.set(peerId, "sent");
+  dlog(`sending my video to ${peerId}`);
+  room.addStream(state.pipe.stream, { target: peerId, metadata: { kind: "camera" } });
+  if (state.screen) room.addStream(state.screen, { target: peerId, metadata: { kind: "screen" } });
+}
+
+function gotStream(stream, peerId, meta) {
+  // their video arrived, so it's our turn (once their renegotiation has settled)
+  if (state.mediaWait.has(peerId) && state.mediaWait.get(peerId) !== "sent") setTimeout(() => sendMedia(peerId), 600);
+  const p = state.peers.get(peerId);
+  if (!p) return;
+  const isScreen = (meta && meta.kind === "screen") || (p.shareId && stream.id === p.shareId);
+  if (isScreen) {
+    if (!p.screen) p.screen = { id: stream.id };
+    if (p.screen.stream !== stream) {
+      p.screen.stream = stream;
+      if (!p.screen.video) p.screen.video = newVideo(false);
+      p.screen.video.srcObject = stream;
+      p.screen.video.play().catch(() => {});
+      if (state.recorder) state.recorder.addAudio("screen:" + peerId, stream);
+      toast(`${p.name || "Someone"} is presenting`);
+    }
+    renderScreenTile(peerId);
+    return;
+  }
+  if (!p.video) p.video = newVideo(false);
+  if (p.stream !== stream) {
+    p.stream = stream;
+    p.video.srcObject = stream;
+    p.video.play().catch(() => toast("Tap anywhere to hear everyone", 5000));
+    watchLevel(peerId, stream);
+    if (state.recorder) state.recorder.addAudio(peerId, stream);
+  }
+  renderTile(peerId);
+}
+
+function greet(p) {
+  if (p.greeted || !p.name) return;
+  p.greeted = true;
+  toast(`${p.name} joined`);
+  say(`${p.name} joined the call`);
+}
+
+function dropPeer(peerId, quiet) {
+  clearTimeout(state.mediaWait && state.mediaWait.get(peerId));
+  if (state.mediaWait) state.mediaWait.delete(peerId);
+  const p = state.peers.get(peerId);
+  if (p && !quiet) { toast(`${p.name || "Someone"} left`); say(`${p.name || "Someone"} left the call`); }
+  setRecBy(peerId, false);
+  if (p && p.screen) removeScreenTile(peerId);
+  removeTile(peerId);
+  if (state.recorder) { state.recorder.removeAudio(peerId); state.recorder.removeAudio("screen:" + peerId); }
+  if (p) { p.tile = null; p.video = null; p.stream = null; p.screen = null; p.greeted = false; }
+  state.peers.delete(peerId);
+  layout();
+}
+
+/* ---------------- who can get in: passcode and waiting room ----------------
+   The passcode is real protection: the connection handshake is encrypted with it, so a browser
+   without it can't connect at all. The waiting room is kept by the browsers in the call: they
+   send nothing (no video, voice, chat or names) to someone they haven't let in. Nobody in the
+   call yet? The person who started it gets straight in on this device; others wait. */
+
+const HOST_KEY = "konvene_hosted"; // calls you started on this device (code, passcode, ask first), for a week
+function hostedList() { try { return JSON.parse(localStorage.getItem(HOST_KEY) || "[]").filter((x) => x && Date.now() - x.t < 7 * 864e5); } catch { return []; } }
+function hosted(code) { return hostedList().find((x) => x.code === code) || null; }
+function rememberHosted(code) {
+  try { localStorage.setItem(HOST_KEY, JSON.stringify([{ code, pass: state.pass, lock: state.lock, t: Date.now() }, ...hostedList().filter((x) => x.code !== code)].slice(0, 20))); } catch { /* private */ }
+}
+const SEC_KEY = "konvene_sec"; // your last choice for new calls: passcode on or off, ask first on or off
+function loadSec() { try { return JSON.parse(localStorage.getItem(SEC_KEY) || "{}"); } catch { return {}; } }
+function saveSec() { try { localStorage.setItem(SEC_KEY, JSON.stringify({ pass: $("#sec-pass").checked, wait: $("#sec-wait").checked })); } catch { /* private */ } }
+function makePasscode() {
+  const abc = "abcdefghjkmnpqrstuvwxyz23456789";
+  return Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => abc[b % abc.length]).join("");
+}
+
+// what we tell someone who just connected; someone still waiting learns nothing about who's here
+function helloFor(id) {
+  const now = performance.now();
+  const base = { in: state.admitted, how: state.how, age: state.admitted ? Math.round(now - state.inAt) : 0, lock: state.lock, lockAge: state.lock ? Math.round(now - state.lockAt) : 0 };
+  if (state.admitted && state.lock && !state.peers.has(id)) return base;
+  return { ...base, ...myStatus() };
+}
+
+// both of us are in: show them, and start sending video
+function promote(id) {
+  const p = state.pending.get(id);
+  if (!p || !state.room) return;
+  state.pending.delete(id);
+  dismissKnock(id);
+  if (state.peers.size + 1 >= MAX_PEOPLE) toast("This call is full (6 people).");
+  state.peers.set(id, p);
+  p.sentView = 0;
+  state.actions.hello.send(helloFor(id), { target: id });
+  greet(p);
+  if (p.rec) setRecBy(id, true);
+  renderTile(id);
+  setTimeout(sendViews, 1500);
+  state.mediaWait.delete(id);
+  if (state.selfId < id) sendMedia(id);
+  else state.mediaWait.set(id, setTimeout(() => sendMedia(id), 4000));
+  const early = p.early; p.early = null;
+  for (const [st, meta] of early || []) gotStream(st, id, meta);
+}
+
+function becomeIn(how) {
+  if (state.admitted || !state.room) return;
+  dlog(`in the call (${how})`);
+  state.admitted = true; state.how = how; state.inAt = performance.now();
+  rememberCall(state.code);
+  for (const id of state.conn) state.actions.hello.send(helloFor(id), { target: id });
+  for (const [id, p] of [...state.pending]) if (p.in) promote(id);
+  if (!state.inCall) showCall();
+}
+
+function setLock(on, age = 0, announce = true) {
+  on = !!on;
+  if (state.lock === on) return;
+  state.lock = on;
+  state.lockAt = performance.now() - age;
+  if (state.code && hosted(state.code)) rememberHosted(state.code);
+  if (state.inCall) rememberCall(state.code);
+  $("#lock-toggle").checked = on;
+  if (announce && state.actions && state.conn.size) state.actions.door.send({ lock: on }, { target: [...state.conn] });
+  // off: whoever is waiting walks in by themselves; on: anyone not in yet has to ask
+  if (!on) for (const id of [...state.knocks.keys()]) dismissKnock(id);
+  else if (state.admitted) for (const [id, p] of state.pending) if (!p.in && !state.denied.has(id)) showKnock(id);
+  if (state.panel === "people") renderPeople();
+}
+
+function showKnock(id) {
+  if (state.knocks.has(id) || !state.inCall) return;
+  const p = state.pending.get(id);
+  const name = (p && p.name) || "Someone";
+  const card = el("div", "knock");
+  card.setAttribute("role", "alert");
+  const who = el("p");
+  who.append(el("strong", null, name), document.createTextNode(" wants to join"));
+  const no = el("button", "btn secondary small", "Don't let in");
+  const yes = el("button", "btn primary small", "Let in");
+  no.type = yes.type = "button";
+  no.addEventListener("click", () => answerKnock(id, false));
+  yes.addEventListener("click", () => answerKnock(id, true));
+  card.append(who, el("span", "knock-btns"));
+  card.lastChild.append(no, yes);
+  $("#knocks", stageEl()).append(card);
+  state.knocks.set(id, card);
+  chime();
+  say(`${name} is asking to join the call`);
+  if (state.panel === "people") renderPeople();
+}
+function dismissKnock(id) {
+  const c = state.knocks.get(id);
+  if (c) c.remove();
+  if (state.knocks.delete(id) && state.panel === "people") renderPeople();
+}
+function answerKnock(id, ok) {
+  if (!state.actions) return;
+  const p = state.pending.get(id);
+  state.actions.door.send({ id, ok }, { target: [...new Set([...state.peers.keys(), id])] });
+  if (!ok) state.denied.add(id);
+  dismissKnock(id);
+  toast(ok ? `Letting ${(p && p.name) || "them"} in` : `${(p && p.name) || "They"} won't join`, 2500);
+}
+// a soft two-note sound for a knock (made here, no file to fetch)
+function chime() {
+  try {
+    const a = state.audio, t = a.currentTime;
+    for (const [f, d] of [[660, 0], [880, 0.15]]) {
+      const o = a.createOscillator(), g = a.createGain();
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + d);
+      g.gain.exponentialRampToValueAtTime(0.1, t + d + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.35);
+      o.connect(g).connect(a.destination);
+      o.start(t + d); o.stop(t + d + 0.4);
+    }
+  } catch { /* no sound */ }
+}
+
+// a browser with a different passcode tried to connect (the handshake didn't decrypt)
+const wrongSeen = new Set();
+function wrongPass(room, e) {
+  if (room !== state.room || !/password/i.test((e && e.error) || "")) return;
+  const id = e.peerId;
+  if (state.peers.has(id)) return;
+  dlog(`passcode mismatch with ${id}`);
+  // still asking, or walked in moments ago into an empty call: it's our passcode that's off
+  const ours = !state.admitted || (state.how === "open" && !state.peers.size && performance.now() - state.inAt < 15000);
+  if (ours) {
+    const had = !!state.pass, code = state.code;
+    exitRoom();
+    showLobby(code);
+    $("#pass-row").hidden = false;
+    lobbyNote(had ? "That passcode didn't work. Check it with the person who invited you." : "This call has a passcode. Type it to join.");
+    $("#pass").focus();
+    return;
+  }
+  if (state.admitted && !wrongSeen.has(id)) { wrongSeen.add(id); toast("Someone tried to join with the wrong passcode.", 5000); }
+}
+
+// leave the room but stay on the page (wrong passcode, not let in, cancel, asked to knock)
+function exitRoom() {
+  const room = state.room;
+  if (!room) return;
+  if (state.screen) stopShare();
+  if (state.recorder.recording) toggleRecording();
+  for (const id of [...state.peers.keys()]) dropPeer(id, true);
+  for (const id of [...state.knocks.keys()]) dismissKnock(id);
+  state.pending.clear(); state.conn.clear();
+  state.room = null; state.actions = null; state.quality = null;
+  try { room.leave(); } catch { /* gone */ }
+  if (state.me && state.me.tile) { state.me.tile.remove(); state.me.tile = null; }
+  state.admitted = false; state.how = null;
+  if (state.pip) state.pip.close();
+  try { navigator.mediaSession.setActionHandler("enterpictureinpicture", null); } catch { /* not supported */ }
+  state.inCall = false;
+  clearTimeout(state.waitTimer);
+  forgetCall();
+}
+
+// we walked in, but the call has started asking: go back and knock like everyone else
+function regate() {
+  const code = state.code;
+  exitRoom();
+  showLobby(code);
+  toast("This call now asks before letting people in.", 4000);
+  enterCall({ wait: true });
+}
+
+function lobbyNote(text) { const n = $("#lobby-note"); n.textContent = text || ""; n.hidden = !text; }
+function waitText(title, text) { $("#wait-title").textContent = title; $("#wait-text").textContent = text; }
+function showWaiting() {
+  screen("lobby");
+  $("#join-form").hidden = true;
+  $("#lobby-sec").hidden = true;
+  $("#lobby-wait").hidden = false;
+  $("#lobby-title").textContent = "Waiting to be let in";
+  $("#lobby-sub").hidden = true;
+  lobbyNote("");
+  waitText("Asking to join", "Someone in the call will let you in. You can keep checking your camera and microphone.");
+  clearTimeout(state.waitTimer);
+  state.waitTimer = setTimeout(() => {
+    if (state.admitted || !state.room || [...state.pending.values()].some((p) => p.in)) return;
+    waitText("Waiting for someone to let you in", "Nobody in the call has answered yet. They may not be there yet, or your passcode may not match theirs. You can keep waiting.");
+  }, 20000);
+  $("#wait-cancel").focus({ preventScroll: true });
 }
 
 // weak connections: quality per person, audio-only fallback, smaller video for small tiles (quality.js)
@@ -931,7 +1221,7 @@ async function toggleShare() {
   state.screenVideo.play().catch(() => {});
   const v = stream.getVideoTracks()[0];
   if (v) { v.contentHint = "detail"; v.addEventListener("ended", stopShare); }
-  state.room.addStream(stream, { metadata: { kind: "screen" } });
+  if (state.peers.size) state.room.addStream(stream, { target: [...state.peers.keys()], metadata: { kind: "screen" } });
   state.actions.share.send({ on: true, id: stream.id });
   if (state.recorder && stream.getAudioTracks().length) state.recorder.addAudio("screen:me", stream);
   $("#share-btn").setAttribute("aria-pressed", "true");
@@ -1001,6 +1291,27 @@ function addMessage(who, text, mine) {
 }
 
 function renderPeople() {
+  // asking to join (only while the call asks first)
+  const wl = $("#waiting-list");
+  wl.innerHTML = "";
+  for (const id of state.knocks.keys()) {
+    const p = state.pending.get(id) || {};
+    const li = el("li");
+    li.append(el("span", "avatar", (p.name || "?").slice(0, 1).toUpperCase()), el("span", "who", p.name || "Someone"));
+    const btns = el("span", "knock-btns");
+    const no = el("button", "btn secondary small", "Don't let in"), yes = el("button", "btn primary small", "Let in");
+    no.type = yes.type = "button";
+    no.addEventListener("click", () => answerKnock(id, false));
+    yes.addEventListener("click", () => answerKnock(id, true));
+    btns.append(no, yes);
+    li.append(btns);
+    wl.append(li);
+  }
+  $("#waiting-box").hidden = !state.knocks.size;
+  $("#lock-toggle").checked = state.lock;
+  $("#pass-line").hidden = !state.pass;
+  $("#pass-code").textContent = state.pass;
+  $("#invite-plain").hidden = !state.pass;
   const ul = $("#people-list");
   ul.innerHTML = "";
   const rows = [[state.selfId, state.me], ...state.peers];
@@ -1133,7 +1444,7 @@ function buildReactions() {
 /* ---------------- start ---------------- */
 
 const SESSION_KEY = "konvene_call";
-function rememberCall(code) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ code, name: state.name })); } catch { /* private */ } }
+function rememberCall(code) { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify({ code, name: state.name, pass: state.pass, lock: state.lock, admitted: state.admitted })); } catch { /* private */ } }
 function rememberedCall() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); } catch { return null; } }
 function forgetCall() { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* private */ } }
 
@@ -1157,9 +1468,31 @@ function showHome() {
 }
 // before joining: a big preview, mic and camera with device choices, effects and your name.
 // Your last choices (devices, on or off, effects, name) come back from local storage.
-function showLobby(code) {
+// inv: what an invite link carried after the # ({ pass, wait })
+function showLobby(code, inv = null) {
+  if (state.code !== code) { state.pass = ""; state.lock = false; }
   state.code = code;
   const isNew = state.newCode === code;
+  // who can get in: a new call sets it here; your own earlier call remembers it; a link may carry it
+  const mine = hosted(code);
+  if (mine) { state.pass = mine.pass || ""; state.lock = !!mine.lock; }
+  else if (inv) { if (inv.pass) state.pass = inv.pass; if (inv.wait) state.lock = true; }
+  $("#join-form").hidden = false;
+  $("#lobby-wait").hidden = true;
+  $("#lobby-sub").hidden = false;
+  lobbyNote("");
+  $("#lobby-sec").hidden = !isNew;
+  if (isNew) {
+    const sec = loadSec();
+    $("#sec-pass").checked = !!sec.pass;
+    $("#sec-wait").checked = !!sec.wait;
+    if (!$("#pass").value || $("#pass").dataset.code !== code) { $("#pass").value = makePasscode(); $("#pass").dataset.code = code; }
+    syncSec();
+  } else {
+    $("#pass").value = state.pass;
+    $("#pass").dataset.code = code;
+    $("#pass-row").hidden = !state.pass;
+  }
   $("#lobby-title").textContent = isNew ? "Ready to start?" : "Ready to join?";
   $("#lobby-sub").textContent = isNew
     ? "Check how you look and sound. Once you're in, share the link and people can join."
@@ -1178,9 +1511,9 @@ async function restoreAv() {
   if (av.cam && !state.cam) await setCam(true);
   if (av.mic && !state.mic) await setMic(true);
 }
-function route() {
+function route(inv = null) {
   const code = codeFromHash();
-  if (code) showLobby(code); else showHome();
+  if (code) showLobby(code, inv); else showHome();
 }
 function startCall() {
   const code = makeRoomCode();
@@ -1189,10 +1522,21 @@ function startCall() {
   showLobby(code);
 }
 
-// accepts "abc-def-ghj" or a full invite link
+// accepts "abc-def-ghj" or a full invite link (whose # part may carry a passcode)
 function parseCode(text) {
-  const m = String(text || "").trim().toLowerCase().match(/([a-z0-9]{3})-?([a-z0-9]{3})-?([a-z0-9]{3})\s*$/);
+  const t = String(text || "").trim();
+  const i = t.indexOf("#");
+  const m = (i >= 0 ? t.slice(0, i) : t).toLowerCase().match(/([a-z0-9]{3})-?([a-z0-9]{3})-?([a-z0-9]{3})\s*(\?[^#]*)?$/);
   return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+// a new call: the passcode and ask-first switches on the pre-join page
+function syncSec() {
+  if (state.newCode !== state.code) return;
+  $("#pass-row").hidden = !$("#sec-pass").checked;
+  state.pass = $("#sec-pass").checked ? ($("#pass").value || "").trim() : "";
+  state.lock = $("#sec-wait").checked;
+  $("#lobby-code").textContent = state.code;
 }
 
 function leaveCall() {
@@ -1205,26 +1549,41 @@ function leaveCall() {
   location.href = "/" + location.search;
 }
 
-async function enterCall() {
+// opts.admitted: back after a refresh, already let in. opts.wait: knock even if the link doesn't say so.
+async function enterCall(opts = {}) {
   state.audio.resume();
   const code = codeFromHash() || makeRoomCode();
   const isNew = state.newCode === code;
   goTo(code);
-  rememberCall(code);
+  if (isNew) rememberHosted(code);
+  const host = isNew || !!hosted(code);
   // relay servers for strict networks (asked for at page load; don't wait long for them)
   if (!LOCAL && !state.turn) state.turn = await Promise.race([state.turnReady, new Promise((r) => setTimeout(() => r([]), 2500))]);
+  state.isNewCall = isNew;
+  state.lockAt = performance.now();
   joinRoom(code);
+  // the person who started the call is in straight away; so is someone let in before a refresh.
+  // Everyone else walks in, unless the call asks first: then they knock and wait.
+  if (host) becomeIn("host");
+  else if (opts.admitted && !opts.wait) becomeIn("admitted");
+  else if (!state.lock && !opts.wait) becomeIn("open");
+  else { rememberCall(code); showWaiting(); }
+}
+
+function showCall() {
   state.inCall = true;
+  clearTimeout(state.waitTimer);
   for (const v of $$("#lobby-preview canvas")) v.remove();
   screen("call");
   // Chrome 120+: switching to another tab opens the call in picture-in-picture (needs the mic in use, which a call always has)
   try { navigator.mediaSession.setActionHandler("enterpictureinpicture", () => state.pip.show()); } catch { /* not supported */ }
-  $("#room-code").textContent = code;
+  $("#room-code").textContent = state.code;
+  $("#lock-toggle").checked = state.lock;
   hookMic();
   renderTile(state.selfId);
   closeFx();
   $("#room-chip").focus();
-  toast(isNew ? "You're live. Copy the link to invite people." : "You're in.", 4000);
+  toast(state.isNewCall ? "You're live. Copy the link to invite people." : "You're in.", 4000);
 }
 
 async function init() {
@@ -1234,21 +1593,39 @@ async function init() {
   try { $("#name").value = localStorage.getItem("gr_name") || ""; } catch { /* private */ }
   state.pipe.name = $("#name").value;
   const code = codeFromHash();
-  if (code && location.hash) goTo(code); // tidy an old #abc-def-ghj link into /abc-def-ghj
+  const inv = hashParams(location.hash); // the passcode and "ask first" from an invite link
+  if (code && location.hash) goTo(code); // keep the address bar clean: /abc-def-ghj
   const again = rememberedCall();
   const rejoin = !!(again && code && again.code === code && again.name);
-  if (!rejoin) route();
+  if (!rejoin) route(inv);
   $("#start-btn").addEventListener("click", startCall);
   $("#cta-start").addEventListener("click", startCall);
   $("#code-form").addEventListener("submit", (e) => {
     e.preventDefault();
-    const c = parseCode($("#code-input").value);
+    const v = $("#code-input").value;
+    const c = parseCode(v);
     if (!c) { toast("That doesn't look like a call code. It looks like abc-def-ghj."); return; }
     history.pushState(null, "", "/" + c + location.search);
-    showLobby(c);
+    showLobby(c, v.includes("#") ? hashParams(v.slice(v.indexOf("#"))) : null);
   });
   // Back goes from the pre-join page to home. During a call it does nothing (Leave does that).
-  addEventListener("popstate", () => { if (state.inCall) history.pushState(null, "", "/" + state.code + location.search); else route(); });
+  addEventListener("popstate", () => {
+    if (state.inCall) { history.pushState(null, "", "/" + state.code + location.search); return; }
+    if (state.room) exitRoom(); // was asking to join
+    route();
+  });
+  // a new call: passcode and ask first (remembered for your next new call)
+  for (const id of ["#sec-pass", "#sec-wait"]) $(id).addEventListener("change", () => { syncSec(); saveSec(); if (id === "#sec-pass" && $("#sec-pass").checked) $("#pass").select(); });
+  $("#pass").addEventListener("input", () => { syncSec(); lobbyNote(""); });
+  $("#wait-cancel").addEventListener("click", () => { const c = state.code; exitRoom(); showLobby(c); });
+  $("#lock-toggle").addEventListener("change", (e) => {
+    setLock(e.target.checked);
+    toast(e.target.checked ? "People now ask before joining" : "People can join without asking", 3000);
+  });
+  $("#invite-plain").addEventListener("click", async () => {
+    const u = link(state.code, false);
+    try { await navigator.clipboard.writeText(u); toast("Link copied. Send the passcode separately."); } catch { toast(u, 8000); }
+  });
   $("#lobby-copy").addEventListener("click", async () => {
     try { await navigator.clipboard.writeText(link(state.code)); toast("Call link copied"); } catch { toast(link(state.code), 8000); }
   });
@@ -1269,7 +1646,11 @@ async function init() {
   // refreshing during a call puts you straight back in it (the microphone is still required)
   if (rejoin) {
     state.name = again.name; state.pipe.name = again.name; $("#name").value = again.name;
-    setTimeout(async () => { if (await ensureMic()) enterCall(); else forgetCall(); }, 0);
+    state.code = again.code; state.pass = again.pass || ""; state.lock = !!again.lock;
+    setTimeout(async () => {
+      if (await ensureMic()) enterCall({ admitted: !!again.admitted });
+      else { forgetCall(); route(); }
+    }, 0);
   }
   if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener("devicechange", refreshDevices);
   document.addEventListener("change", (e) => { const s = e.target.closest("select[data-kind]"); if (s && s.value) switchDevice(s.dataset.kind, s.value); });
@@ -1294,6 +1675,10 @@ async function init() {
       return;
     }
     showHint("");
+    if (state.newCode === state.code) {
+      if ($("#sec-pass").checked && !$("#pass").value.trim()) $("#pass").value = makePasscode();
+      syncSec();
+    } else if (!$("#pass-row").hidden) state.pass = $("#pass").value.trim();
     enterCall();
   });
   state.pipe.onAway = (away) => {
@@ -1386,6 +1771,7 @@ async function init() {
   addEventListener("click", () => { state.audio.resume(); for (const v of $$("#tiles video, #spotlight video", stageEl())) if (v.paused) v.play().catch(() => {}); });
   speakingLoop();
   window.__gr = state; // for tests
+  window.__grLink = (withPass) => link(state.code, withPass);
 }
 
 init();

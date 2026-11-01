@@ -13,7 +13,9 @@ export function makeRoomCode() {
   return s;
 }
 
-function localRoom(roomId) {
+// pass: the call's passcode. Locally it's only compared (like a wrong Trystero password, the
+// two browsers never connect and both hear about it); with Trystero it encrypts the handshake.
+function localRoom(roomId, pass, onJoinError) {
   const selfId = "L" + Math.random().toString(36).slice(2, 10);
   const ch = new BroadcastChannel("konvene-" + roomId);
   const peers = new Map(); // id -> { pc, makingOffer, polite }
@@ -42,7 +44,7 @@ function localRoom(roomId) {
     connections: () => [...peers.values()].map((p) => p.pc),
     peerConns: () => [...peers].map(([id, p]) => [id, p.pc]),
     makeAction(name) {
-      const a = { onMessage: () => {}, send(data, opts = {}) { ch.postMessage({ k: "msg", from: selfId, to: opts.target || null, name, data }); } };
+      const a = { onMessage: () => {}, send(data, opts = {}) { ch.postMessage({ k: "msg", from: selfId, to: opts.target == null ? null : [].concat(opts.target), name, data }); } };
       actions[name] = a;
       return a;
     },
@@ -70,6 +72,8 @@ function localRoom(roomId) {
       if (st) room.onPeerStream(st, id, remoteMeta.get(st.id) || null);
     };
     pc.onconnectionstatechange = () => { if (["failed", "closed"].includes(pc.connectionState)) drop(id); };
+    // like Trystero's data channel: connect even before any video is sent (someone still waiting gets none)
+    if (peer.polite) pc.createDataChannel("konvene");
     for (const [st, meta] of streams) sendStream(id, peer, st, meta);
     room.onPeerJoin(id);
   }
@@ -84,14 +88,20 @@ function localRoom(roomId) {
     const m = e.data;
     if (!m || m.from === selfId) return;
     if (m.k === "hello") {
-      if (!m.to) ch.postMessage({ k: "hello", from: selfId, to: m.from });
+      if (m.to && m.to !== selfId) return;
+      if ((m.pw || "") !== (pass || "")) {
+        if (onJoinError) onJoinError({ error: "incorrect room password when decrypting offer", peerId: m.from });
+        if (!m.to) ch.postMessage({ k: "hello", from: selfId, to: m.from, pw: pass || "" });
+        return;
+      }
+      if (!m.to) ch.postMessage({ k: "hello", from: selfId, to: m.from, pw: pass || "" });
       // only one side starts the connection, so the two offers never collide
-      if ((!m.to || m.to === selfId) && selfId < m.from) connect(m.from);
+      if (selfId < m.from) connect(m.from);
       return;
     }
     if (m.k === "bye") { drop(m.from); return; }
     if (m.k === "meta") { if (m.to === selfId) remoteMeta.set(m.streamId, m.metadata); return; }
-    if (m.k === "msg") { if ((!m.to || m.to === selfId) && actions[m.name]) actions[m.name].onMessage(m.data, { peerId: m.from }); return; }
+    if (m.k === "msg") { if ((!m.to || m.to.includes(selfId)) && actions[m.name]) actions[m.name].onMessage(m.data, { peerId: m.from }); return; }
     if (m.k === "sig" && m.to === selfId) {
       if (!peers.has(m.from)) connect(m.from);
       const p = peers.get(m.from);
@@ -108,18 +118,22 @@ function localRoom(roomId) {
       } catch (err) { console.warn("signal", err); }
     }
   };
-  setTimeout(() => ch.postMessage({ k: "hello", from: selfId, to: null }), 50);
+  setTimeout(() => ch.postMessage({ k: "hello", from: selfId, to: null, pw: pass || "" }), 50);
   addEventListener("pagehide", () => room.leave());
   return room;
 }
 
-// turn: TURN servers from config.js iceServers(), used only when a direct route fails
-export function join(roomId, { local = false, turn = [] } = {}) {
-  if (local) return localRoom(roomId);
+// turn: TURN servers from config.js iceServers(), used only when a direct route fails.
+// pass: the call's passcode. Trystero encrypts the handshake with it, so a browser without the
+// right passcode can't connect at all (and the relays only ever see scrambled data).
+// onJoinError({ error, peerId }): a browser with a different passcode tried to connect.
+export function join(roomId, { local = false, turn = [], pass = "", onJoinError = null } = {}) {
+  if (local) return localRoom(roomId, pass, onJoinError);
   const cfg = { appId: CONFIG.appId };
   if (CONFIG.relays.length) cfg.relayConfig = { urls: CONFIG.relays };
   if (turn.length) cfg.turnConfig = turn;
-  const room = trysteroJoin(cfg, roomId);
+  if (pass) cfg.password = pass;
+  const room = trysteroJoin(cfg, roomId, onJoinError ? { onJoinError } : undefined);
   return {
     selfId: trysteroSelf,
     local: false,

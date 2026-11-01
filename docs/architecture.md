@@ -14,7 +14,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 
 | File | What it does |
 |---|---|
-| `main.js` | Home page, pre-join page (preview, devices, effects, name), call screen, tiles, spotlight and pinning, chat, people, device menus and pickers, effects drawer with live previews, recording flow, shortcuts |
+| `main.js` | Home page, pre-join page (preview, devices, effects, name, passcode), call screen, waiting room, tiles, spotlight and pinning, chat, people, device menus and pickers, effects drawer with live previews, recording flow, shortcuts |
 | `pipeline.js` | Your outgoing video: camera, vision, effects, overlays, the "stepped away" card, keep-in-frame zoom, low-light gain, and the microphone track |
 | `fx.js` | WebGL2 shaders: guided-filter edge refinement, mask-weighted background blur, virtual backgrounds, lighting, looks, and the face effects |
 | `face.js` | Face geometry from the 478 landmarks: smoothing, eye/mouth/cheek positions, and a soft skin/lips/mouth mask |
@@ -35,6 +35,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 - Browsers find a route with public STUN servers. Where no direct route exists, an optional TURN relay passes the encrypted media along (see `server/turn.mjs`).
 - The outgoing video is a canvas, so switching cameras or effects needs nothing from the other side. Switching microphones swaps the audio track with `replaceTrack`.
 - Peers receive a clone of the microphone track. Muting disables the clone, so the original still shows the "you're talking while muted" reminder.
+- Who can get in. A passcode is Trystero's room `password`: the handshake is encrypted with it, and a mismatch reaches `onJoinError` ("incorrect room password"). Only the browser that fails to decrypt hears about it, so a joiner with the wrong passcode is told when its side fails, and otherwise sees "nobody has answered yet". The waiting room is a protocol between the browsers (`hello` and `door` actions in `main.js`): each says whether it is in the call and whether the call asks first. Connected people who aren't in the call with you sit in `state.pending`; every action except `hello` and `door` is sent only to `state.peers`, and video starts only when both sides are in. The person who started the call (remembered in local storage) is in straight away. Someone who walked in without asking, after the call started asking, is sent back to knock.
 - Quality is set per person every 2 seconds (`quality.js`): a tier from that connection's stats (good, weak: 720p, poor: 360p at 15 fps, bad: audio only), the size that person shows you at, and a base bitrate of 2.5 Mbps with one other person down to 1 Mbps with five. It steps down after 4 s of worse numbers and up one step after 10 s of better ones (longer if it keeps falling back).
 
 ## Background cutout

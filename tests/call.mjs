@@ -276,6 +276,69 @@ await shot(a, `${OUT}/07-call-effects.png`);
 ok(outside.length === 0, `no requests leave the site (${outside.slice(0, 3).join(", ") || "none"})`);
 ok(a.errors.length === 0 && b.errors.length === 0, `no errors (${[...a.errors, ...b.errors].slice(0, 3).join(" | ") || "none"})`);
 
+// who can get in: a passcode, and asking before letting people in
+await a.close(); await b.close();
+// the local handshake only reaches tabs of the same browser, so the guests share it, but they
+// mustn't count as the host (whose calls are remembered in local storage)
+const hctx = await browser.newContext({ viewport: { width: 1360, height: 820 }, permissions: ["camera", "microphone"] });
+const guest = async () => { const p = await hctx.newPage(); await p.addInitScript(() => localStorage.removeItem("konvene_hosted")); watch(p); return p; };
+const ready = (p) => p.waitForFunction(() => window.__gr && window.__gr.pipe.running, null, { timeout: 30000 });
+const h = await hctx.newPage(); watch(h);
+await h.goto(BASE + "?local=1"); await ready(h);
+await h.click("#start-btn");
+ok(await h.evaluate(() => !document.querySelector("#lobby-sec").hidden && document.querySelector("#pass-row").hidden), "a new call offers a passcode and asking first");
+await h.click('label:has(#sec-pass)');
+await h.click('label:has(#sec-wait)');
+const pass = await h.inputValue("#pass");
+ok(pass.length >= 6 && await h.evaluate(() => !document.querySelector("#pass-row").hidden), `passcode made for the call (${pass.length} characters)`);
+await h.fill("#name", "Host");
+await h.click("#join-btn");
+await h.waitForSelector("#call:not([hidden])");
+const invite = await h.evaluate(() => window.__grLink(true));
+const plain = await h.evaluate(() => window.__grLink(false));
+ok(invite.includes("#p=" + pass) && /wait/.test(invite.split("#")[1]) && !plain.includes("p="), `invite link carries the passcode after the # ${invite.replace(pass, "***")}`);
+await shot(h, `${OUT}/09-host-locked.png`);
+
+// without the passcode: can't connect, and is told why
+const j = await guest();
+await j.goto(plain); await ready(j);
+ok(await j.evaluate(() => document.querySelector("#pass-row").hidden), "a link without the passcode doesn't show one");
+await j.fill("#name", "Guest");
+await j.click("#join-btn");
+const asked = await j.waitForFunction(() => !document.querySelector("#pass-row").hidden && /passcode/.test(document.querySelector("#lobby-note").textContent), null, { timeout: 20000 }).then(() => true).catch(() => false);
+ok(asked && await j.evaluate(() => !window.__gr.inCall && !window.__gr.room), "the wrong passcode can't get in and is asked for the passcode");
+ok(await h.waitForFunction(() => /wrong passcode/.test(document.querySelector("#toast").textContent), null, { timeout: 10000 }).then(() => true).catch(() => false), "the call hears that someone tried the wrong passcode");
+await shot(j, `${OUT}/09b-passcode-needed.png`);
+
+// with the passcode: asks to join, and sees nothing of the call until let in
+await j.fill("#pass", pass);
+await j.click("#join-btn");
+ok(await j.waitForFunction(() => !document.querySelector("#lobby-wait").hidden, null, { timeout: 10000 }).then(() => true).catch(() => false), "the right passcode asks to join");
+ok(await h.waitForFunction(() => /Guest/.test((document.querySelector(".knock") || {}).textContent || ""), null, { timeout: 20000 }).then(() => true).catch(() => false), "the call sees who is asking to join");
+const waiting = await j.evaluate(() => ({ peers: window.__gr.peers.size, inCall: window.__gr.inCall, names: [...window.__gr.pending.values()].map((p) => p.name || "") }));
+ok(waiting.peers === 0 && !waiting.inCall && waiting.names.every((n) => !n), `nothing of the call reaches someone waiting ${JSON.stringify(waiting)}`);
+ok(await h.evaluate(() => document.querySelectorAll("#tiles .tile").length === 1), "someone waiting has no tile in the call");
+await shot(h, `${OUT}/09c-knock.png`);
+await shot(j, `${OUT}/09d-asking.png`);
+await h.click(".knock .btn.primary");
+const inNow = await j.waitForFunction(() => window.__gr.inCall && document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 30000 }).then(() => true).catch(() => false);
+ok(inNow && await h.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2 && !document.querySelector(".knock"), null, { timeout: 20000 }).then(() => true).catch(() => false), "Let in brings them into the call");
+
+// not let in
+const k = await guest();
+await k.goto(invite); await ready(k);
+ok(await k.evaluate((pw) => document.querySelector("#pass").value === pw && !document.querySelector("#pass-row").hidden, pass), "the full invite link fills in the passcode");
+await k.fill("#name", "Stranger");
+await k.click("#join-btn");
+await h.waitForFunction(() => /Stranger/.test((document.querySelector(".knock") || {}).textContent || ""), null, { timeout: 20000 }).catch(() => {});
+ok(await j.waitForFunction(() => /Stranger/.test((document.querySelector(".knock") || {}).textContent || ""), null, { timeout: 10000 }).then(() => true).catch(() => false), "everyone in the call sees the knock");
+await h.click(".knock .btn.secondary");
+ok(await k.waitForFunction(() => /didn't let you in/.test(document.querySelector("#lobby-note").textContent) && !window.__gr.room, null, { timeout: 15000 }).then(() => true).catch(() => false), "Don't let in sends them away and tells them");
+ok(await j.waitForFunction(() => !document.querySelector(".knock"), null, { timeout: 8000 }).then(() => true).catch(() => false), "the knock goes away for everyone once answered");
+ok(outside.length === 0, `still no requests leave the site (${outside.slice(0, 3).join(", ") || "none"})`);
+ok(h.errors.length === 0 && j.errors.length === 0 && k.errors.length === 0, `no errors in the passcode and waiting room pages (${[...h.errors, ...j.errors, ...k.errors].slice(0, 3).join(" | ") || "none"})`);
+await hctx.close();
+
 // phone layout
 const m = await browser.newPage({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true, permissions: ["camera", "microphone"] });
 await m.goto(BASE + "?local=1");

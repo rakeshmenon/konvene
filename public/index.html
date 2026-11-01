@@ -201,8 +201,26 @@
         <form id="join-form" class="lobby-form">
           <label for="name">Your name</label>
           <input id="name" name="display-name" maxlength="20" autocomplete="nickname" autocapitalize="words" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="How others will see you" required>
+          <fieldset class="lobby-sec" id="lobby-sec" hidden>
+            <legend>Who can get in</legend>
+            <label class="switch"><input type="checkbox" id="sec-pass" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Passcode</strong><small>People need it to join. The link you copy includes it.</small></span></label>
+            <label class="switch"><input type="checkbox" id="sec-wait" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Ask before letting people in</strong><small>Someone in the call lets each new person in.</small></span></label>
+          </fieldset>
+          <div class="pass-row" id="pass-row" hidden>
+            <label for="pass">Passcode</label>
+            <input id="pass" name="call-passcode" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="The passcode you were given">
+          </div>
+          <p class="lobby-note" id="lobby-note" role="alert" hidden></p>
           <button class="btn primary" type="submit" id="join-btn">Join now</button>
         </form>
+        <div class="lobby-wait" id="lobby-wait" role="status" hidden>
+          <span class="wait-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+          <div>
+            <strong id="wait-title">Asking to join</strong>
+            <p id="wait-text">Someone in the call will let you in.</p>
+          </div>
+          <button class="btn secondary small" type="button" id="wait-cancel">Cancel</button>
+        </div>
         <div class="lobby-link">
           <span>Call link</span>
           <code id="lobby-code"></code>
@@ -226,6 +244,7 @@
     <div class="stage" id="stage">
       <div class="spotlight" id="spotlight" hidden></div>
       <ul class="tiles" id="tiles" aria-label="People in the call"></ul>
+      <div class="knocks" id="knocks"></div>
     </div>
     <nav class="dock" aria-label="Call controls">
       <div class="dock-side"></div>
@@ -272,8 +291,17 @@
       </form>
     </div>
     <div class="panel-body" id="pane-people" hidden>
+      <section class="waiting-box" id="waiting-box" hidden aria-labelledby="waiting-title">
+        <h3 id="waiting-title">Asking to join</h3>
+        <ul class="people waiting" id="waiting-list"></ul>
+      </section>
       <ul class="people" id="people-list"></ul>
       <button class="btn secondary wide" type="button" id="invite-btn"><svg aria-hidden="true"><use href="#i-link"/></svg>Copy invite link</button>
+      <div class="door-box">
+        <label class="switch"><input type="checkbox" id="lock-toggle" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Ask before letting people in</strong><small>Someone in the call lets each new person in.</small></span></label>
+        <p class="pass-line" id="pass-line" hidden>Passcode <code id="pass-code"></code></p>
+        <button class="btn secondary small" type="button" id="invite-plain" hidden>Copy link without passcode</button>
+      </div>
     </div>
     <div class="panel-body" id="pane-settings" hidden>
       <div class="devices stacked" id="call-devices"></div>
