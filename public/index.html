@@ -7,8 +7,9 @@
 <meta name="referrer" content="no-referrer">
 <title>Konvene: private video calls, free in your browser</title>
 <meta name="description" content="Free video calls that go straight between you and the people you call. No account, no app, nothing stored. Screen sharing, chat, recording and background blur in your browser.">
-<meta name="theme-color" content="#f3f3ef">
+<meta name="theme-color" content="#06110d">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/fonts/instrument-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/bricolage-grotesque-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
@@ -17,7 +18,8 @@
 <body data-screen="home">
 <a class="skiplink" href="#main">Skip to content</a>
 <svg width="0" height="0" class="sr-only" aria-hidden="true">
-  <symbol id="i-logo" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#10261f"/><circle cx="16" cy="16" r="6" fill="#e0a93c"/><circle cx="16.0" cy="5.6" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="10.8" r="2" fill="#f3f3ef"/><circle cx="25.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="16.0" cy="26.4" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="21.2" r="2" fill="#f3f3ef"/><circle cx="7.0" cy="10.8" r="2" fill="#f3f3ef"/></symbol>
+  <symbol id="i-logo" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#10261f"/><circle cx="18" cy="32" r="7" fill="#f3f3ef"/><circle cx="46" cy="32" r="7" fill="#f3f3ef"/><rect x="18" y="29" width="28" height="6" rx="3" fill="#e9ab3f"/></symbol>
+  <symbol id="i-logo-light" viewBox="0 0 64 64"><rect width="64" height="64" rx="16" fill="#eef3ef"/><circle cx="18" cy="32" r="7" fill="#06110d"/><circle cx="46" cy="32" r="7" fill="#06110d"/><rect x="18" y="29" width="28" height="6" rx="3" fill="#e9ab3f"/></symbol>
   <symbol id="i-chair" viewBox="0 0 24 24"><path d="M7 3.5h10M7.5 3.5v9M16.5 3.5v9M5.5 12.5h13v3h-13zM7 15.5v5M17 15.5v5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-mic" viewBox="0 0 24 24"><path d="M12 14.5a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v5.5a3 3 0 0 0 3 3Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M18 11.5a6 6 0 0 1-12 0M12 17.5V21" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
   <symbol id="i-mic-off" viewBox="0 0 24 24"><path d="M15 9V6a3 3 0 0 0-5.8-1M9 9v2.5a3 3 0 0 0 4.8 2.4M18 11.5a6 6 0 0 1-1 3.3M6 11.5a6 6 0 0 0 9.2 5.1M12 17.5V21M4 4l16 16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
@@ -53,40 +55,67 @@
   <section class="home" id="prejoin" aria-labelledby="pj-title">
     <header class="nav" id="nav">
       <div class="wrap nav-in">
-        <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</a>
+        <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo-light"/></svg>konvene</a>
         <nav class="nav-links" aria-label="Site">
+          <a href="#see-a-call">The call</a>
           <a href="#private">How it's private</a>
           <a href="#features">Features</a>
           <a href="#open-source">Open source</a>
-          <a href="/privacy.html">Privacy</a>
         </nav>
         <div class="nav-end">
           <a class="nav-gh" href="{{REPO}}" aria-label="Konvene on GitHub" title="Konvene on GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
-          <button class="btn primary small nav-start" type="button" id="nav-start">Start a call</button>
+          <button class="btn brass small" type="button" id="nav-start">Start a call</button>
         </div>
       </div>
     </header>
 
-    <div class="wrap hero">
-      <div class="hero-copy">
+    <div class="hero">
+      <svg class="orbs" id="orbs" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
+        <defs>
+          <radialGradient id="orb-fill" cx=".5" cy=".38" r=".62"><stop offset="0" stop-color="#1b4636" stop-opacity=".95"/><stop offset=".7" stop-color="#0c2119" stop-opacity=".55"/><stop offset="1" stop-color="#06110d" stop-opacity="0"/></radialGradient>
+          <radialGradient id="lens-fill" gradientUnits="userSpaceOnUse" cx="720" cy="600" r="300"><stop offset="0" stop-color="#ffd98c"/><stop offset=".45" stop-color="#f0b44c" stop-opacity=".78"/><stop offset="1" stop-color="#f0b44c" stop-opacity=".08"/></radialGradient>
+          <linearGradient id="orb-fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".3" stop-color="#fff"/><stop offset=".95" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <mask id="orb-mask"><rect width="1440" height="900" fill="url(#orb-fade)"/></mask>
+          <clipPath id="clip-you"><circle class="c-you" cx="590" cy="640" r="320"/></clipPath>
+          <clipPath id="clip-them"><circle class="c-them" cx="850" cy="640" r="320"/></clipPath>
+        </defs>
+        <g mask="url(#orb-mask)">
+          <g class="ripples"><circle cx="720" cy="640" r="380"/><circle cx="720" cy="640" r="380"/><circle cx="720" cy="640" r="380"/></g>
+          <circle class="c-you" cx="590" cy="640" r="320" fill="url(#orb-fill)"/>
+          <circle class="c-them" cx="850" cy="640" r="320" fill="url(#orb-fill)"/>
+          <g clip-path="url(#clip-you)"><g clip-path="url(#clip-them)" class="lens-g">
+            <rect x="0" y="0" width="1440" height="900" fill="url(#lens-fill)"/>
+            <g class="motes"><circle cx="712" cy="760" r="2.4"/><circle cx="728" cy="800" r="1.6"/><circle cx="700" cy="840" r="2"/><circle cx="738" cy="720" r="1.8"/><circle cx="720" cy="880" r="2.6"/><circle cx="706" cy="690" r="1.4"/><circle cx="732" cy="860" r="1.8"/><circle cx="716" cy="640" r="2"/></g>
+          </g></g>
+          <circle class="c-you orb-ring" cx="590" cy="640" r="320"/>
+          <circle class="c-them orb-ring" cx="850" cy="640" r="320"/>
+        </g>
+        <text class="orb-label t-you" x="330" y="600">You</text>
+        <text class="orb-label t-them" x="1110" y="600" text-anchor="end">Them</text>
+      </svg>
+      <div class="wrap hero-copy">
         <p class="pill"><span class="live" aria-hidden="true"></span>Free and open source. No account needed.</p>
-        <h1 id="pj-title">Video calls that stay between you.</h1>
-        <p class="lede">Konvene connects your browser straight to the people you call. No app, no sign-up, and no server in the middle keeping a copy. Effects, captions and noise reduction all run on your own device.</p>
+        <h1 id="pj-title">The space between you stays yours.</h1>
+        <p class="lede">Video calls that go straight from your browser to theirs. No company in the middle, nothing kept. Effects, captions and noise reduction are worked out on your own device.</p>
         <div class="hero-cta">
-          <button class="btn primary big start-btn" type="button" id="start-btn">Start a call</button>
-          <p class="start-note">You'll check your camera and microphone first. Nobody sees or hears you until you join.</p>
+          <button class="btn brass big start-btn" type="button" id="start-btn">Start a private call</button>
+          <form id="code-form" class="code-form" role="search" autocomplete="off">
+            <label class="sr-only" for="code-input">Got an invite? Paste the link or code</label>
+            <input id="code-input" name="call-link" type="search" inputmode="url" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="Got a link? Paste it here">
+            <button class="btn join" type="submit">Join</button>
+          </form>
         </div>
-        <form id="code-form" class="code-form" role="search" autocomplete="off">
-          <label for="code-input">Got an invite?</label>
-          <div class="code-row">
-            <input id="code-input" name="call-link" type="search" inputmode="url" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="Paste the link or code">
-            <button class="btn secondary" type="submit">Join</button>
-          </div>
-        </form>
+        <p class="start-note">You'll check your camera and microphone first. Nobody sees or hears you until you join.</p>
       </div>
+      <p class="hero-foot">Encrypted, browser to browser. Nothing in between.</p>
+    </div>
 
-      <figure class="demo" aria-label="A Konvene call in progress: the background is blurred on the laptop, a guest asks to join and is let in, and live captions appear.">
-        <div class="demo-win" aria-hidden="true">
+    <section class="showcase" id="see-a-call" aria-labelledby="showcase-title">
+      <div class="wrap">
+        <h2 id="showcase-title">Everything a call needs, worked out on your device.</h2>
+        <p class="section-lede">Blur, captions, noise reduction and who gets in. The parts other apps send to their cloud happen right in your browser.</p>
+        <figure class="demo" aria-label="A Konvene call in progress: the background is blurred on the laptop, a guest asks to join and is let in, and live captions appear.">
+          <div class="demo-win" aria-hidden="true">
           <div class="demo-bar">
             <span class="demo-lights"><i></i><i></i><i></i></span>
             <span class="demo-code"><svg><use href="#i-lock"/></svg>abc-def-ghj</span>
@@ -101,7 +130,7 @@
               <span class="ring"></span>
               <span class="dt-name">You</span>
               <span class="dt-chip"><svg><use href="#i-studio"/></svg>Background blurred on this laptop</span>
-              <p class="cap"><b>You</b><span>Captions are made right here, on this laptop.</span></p>
+              <p class="d-cap"><b>You</b><span>Captions are made right here, on this laptop.</span></p>
             </div>
             <div class="dt dt-b"><span class="av">H</span><span class="dt-name"><svg><use href="#i-mic-off"/></svg>Host</span></div>
             <div class="dt dt-c"><span class="av">G</span><span class="dt-name">Guest</span></div>
@@ -111,10 +140,14 @@
             <i><svg><use href="#i-mic"/></svg></i><i><svg><use href="#i-cam"/></svg></i><i class="on"><svg><use href="#i-cc"/></svg></i><i><svg><use href="#i-screen"/></svg></i><i class="end"><svg><use href="#i-leave"/></svg></i>
           </div>
         </div>
-      </figure>
-    </div>
+          <span class="sc-note n-blur" aria-hidden="true">Blur made on this laptop</span>
+          <span class="sc-note n-door" aria-hidden="true">You decide who comes in</span>
+          <span class="sc-note n-cap" aria-hidden="true">Captions made on your device</span>
+        </figure>
+      </div>
+    </section>
 
-    <section class="wrap ruled private" id="private" aria-labelledby="private-title">
+    <section class="wrap private" id="private" aria-labelledby="private-title">
       <div class="private-head">
         <div>
           <h2 id="private-title">Your call goes to the people in it. Nowhere else.</h2>
@@ -152,9 +185,9 @@
       <p class="fine-print">As on any video call, the people you talk to and the public services that help browsers find each other can see your IP address. <a href="/privacy.html">Read the privacy details</a></p>
     </section>
 
-    <section class="wrap ruled features" id="features" aria-labelledby="features-title">
-      <h2 id="features-title">Everything a good call needs, done on your device.</h2>
-      <p class="section-lede">The things other apps send to their cloud, Konvene does in your browser.</p>
+    <section class="wrap features" id="features" aria-labelledby="features-title">
+      <h2 id="features-title">Made for real calls.</h2>
+      <p class="section-lede">Pick a feature to see it.</p>
       <div class="explorer">
         <div class="ex-tabs" role="tablist" aria-label="Features" aria-orientation="vertical">
           <button role="tab" id="ft-looks" aria-controls="fp-looks" aria-selected="true"><strong>Background and looks</strong><span>Blur, virtual backgrounds, lighting and touch-up, drawn by your own graphics chip before the picture leaves.</span></button>
@@ -248,16 +281,17 @@
       </div>
     </section>
 
-    <section class="wrap cta-band" aria-labelledby="cta-title">
-      <div>
+    <section class="cta-band" aria-labelledby="cta-title">
+      <div class="wrap cta-in">
+        <svg class="cta-mark" viewBox="0 0 64 64" aria-hidden="true"><use href="#i-logo-light"/></svg>
         <h2 id="cta-title">Start a private call.</h2>
         <p>Free, with nothing to install. Send the link and you're talking.</p>
+        <button class="btn brass big" type="button" id="cta-start">Start a call</button>
       </div>
-      <button class="btn primary big" type="button" id="cta-start">Start a call</button>
     </section>
 
     <footer class="wrap ruled site-foot">
-      <a class="brand small" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</a>
+      <a class="brand small" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo-light"/></svg>konvene</a>
       <p>Free, private video calls in your browser.<!--demo--> This is the public demo.<!--/demo--> Made by <a href="https://sublimecoder.io">Rakesh Menon</a>.</p>
       <nav aria-label="Footer"><a href="/self-host.html">Run your own</a><a href="{{REPO}}">GitHub</a><a href="/privacy.html">Privacy</a></nav>
     </footer>
@@ -265,7 +299,7 @@
 
   <section class="lobby" id="lobby" hidden aria-labelledby="lobby-title">
     <header class="bar lobby-bar">
-      <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</a>
+      <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>konvene</a>
       <a class="lobby-cancel" href="/">Cancel</a>
     </header>
     <div class="lobby-main">
@@ -323,7 +357,7 @@
 
   <section class="call" id="call" hidden aria-labelledby="call-title">
     <header class="bar call-bar">
-      <p class="brand"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</p>
+      <p class="brand"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>konvene</p>
       <h1 class="sr-only" id="call-title">Call</h1>
       <div class="bar-mid">
         <button class="chip" type="button" id="room-chip" title="Copy invite link"><span id="room-code"></span><svg aria-hidden="true"><use href="#i-link"/></svg></button>

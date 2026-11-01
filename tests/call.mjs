@@ -367,6 +367,7 @@ await j.evaluate(() => window.SpeechRecognition.say("hello from the guest", true
 ok(await h.waitForFunction(() => /Guest.*hello from the guest/.test(document.querySelector("#captions").textContent), null, { timeout: 8000 }).then(() => true).catch(() => false), "the guest's words show as captions for the host");
 await h.evaluate(() => window.SpeechRecognition.say("and this is me", true));
 ok(await h.waitForFunction(() => /You.*and this is me/.test(document.querySelector("#captions").textContent), null, { timeout: 5000 }).then(() => true).catch(() => false), "your own words show too");
+ok(await h.evaluate(() => [...document.querySelectorAll("#captions .cap")].every((c) => getComputedStyle(c).opacity === "1" && c.getBoundingClientRect().height > 10)), "caption lines are visible (home page styles don't leak into the call)");
 ok(await j.evaluate(() => document.querySelector("#captions").hidden && !/hello/.test(document.querySelector("#captions").textContent)), "captions show only for people who turned them on");
 await shot(h, `${OUT}/10-captions.png`);
 await h.click("#cc-btn");

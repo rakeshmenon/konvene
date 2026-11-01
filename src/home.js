@@ -14,6 +14,8 @@ export function initHome() {
   addEventListener("scroll", onScroll, { passive: true });
   onScroll();
 
+  meet($("#orbs"));
+
   // feature tabs (arrow keys move between them, like any tab list)
   const tabs = $$('.ex-tabs [role="tab"]', home);
   const select = (t, focus) => {
@@ -71,4 +73,45 @@ export function initHome() {
   const noisy = $(".w-noisy", home), clean = $(".w-clean", home);
   if (noisy) noisy.setAttribute("d", wave(true));
   if (clean) clean.setAttribute("d", wave(false));
+}
+
+// The hero: two circles, you and them, drift together; where they overlap lights up.
+// They follow the pointer a little. Nothing here runs when motion is turned off.
+function meet(svg) {
+  if (!svg) return;
+  const you = Array.from(svg.querySelectorAll(".c-you")), them = Array.from(svg.querySelectorAll(".c-them"));
+  const lens = svg.querySelector("#lens-fill"), motes = svg.querySelector(".motes"), ripples = svg.querySelectorAll(".ripples circle");
+  const tYou = svg.querySelector(".t-you"), tThem = svg.querySelector(".t-them"), glow = svg.querySelector(".lens-g");
+  const CX = 720, CY = 640, NEAR = 130, FAR = 330;
+  let half = FAR, px = 0, py = 0, tx = 0, ty = 0;
+  const draw = () => {
+    const cx = CX + px, cy = CY + py;
+    for (const c of you) { c.setAttribute("cx", cx - half); c.setAttribute("cy", cy); }
+    for (const c of them) { c.setAttribute("cx", cx + half); c.setAttribute("cy", cy); }
+    for (const c of ripples) { c.setAttribute("cx", cx); c.setAttribute("cy", cy); }
+    if (lens) { lens.setAttribute("cx", cx); lens.setAttribute("cy", cy - 40); }
+    if (motes) motes.setAttribute("transform", `translate(${(cx - CX).toFixed(1)} ${(cy - CY).toFixed(1)})`);
+    if (tYou) tYou.setAttribute("x", (cx - half - 260).toFixed(1));
+    if (tThem) tThem.setAttribute("x", (cx + half + 260).toFixed(1));
+  };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) { half = NEAR; draw(); if (glow) glow.style.opacity = "1"; svg.classList.add("met"); return; }
+  const t0 = performance.now(), DUR = 1800;
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  let raf = 0;
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / DUR);
+    half = FAR + (NEAR - FAR) * ease(t);
+    if (glow) glow.style.opacity = String(Math.min(1, Math.max(0, (t - 0.25) / 0.6)));
+    px += (tx - px) * 0.06; py += (ty - py) * 0.06;
+    draw();
+    if (t >= 1) svg.classList.add("met");
+    raf = (t < 1 || Math.abs(tx - px) > 0.2 || Math.abs(ty - py) > 0.2) ? requestAnimationFrame(step) : 0;
+  };
+  raf = requestAnimationFrame(step);
+  addEventListener("pointermove", (e) => {
+    if (e.pointerType !== "mouse" || scrollY > innerHeight) return;
+    tx = (e.clientX / innerWidth - 0.5) * 36;
+    ty = (e.clientY / innerHeight - 0.5) * 18;
+    if (!raf) raf = requestAnimationFrame(step);
+  }, { passive: true });
 }

@@ -1603,6 +1603,9 @@ function loadAv() { try { return JSON.parse(localStorage.getItem(AV_KEY) || "{}"
 function saveAv() { try { localStorage.setItem(AV_KEY, JSON.stringify({ mic: state.mic, cam: state.cam })); } catch { /* private */ } }
 function screen(name) {
   document.body.dataset.screen = name;
+  // the home page is night green; the pre-join page and the call are light
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.content = name === "home" ? "#06110d" : "#f3f3ef";
   $("#prejoin").hidden = name !== "home";
   $("#lobby").hidden = name !== "lobby";
   $("#call").hidden = name !== "call";
