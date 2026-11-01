@@ -87,14 +87,16 @@ export class Pipeline {
   watchSpeed(ms) {
     if (!this.camOn || this.away || this.W <= 960) { this.speed = null; return; }
     const now = performance.now();
-    const sp = this.speed || (this.speed = { n: 0, sum: 0, from: now });
+    const sp = this.speed || (this.speed = { n: 0, start: now, from: 0, times: [] });
     sp.n++;
-    if (sp.n <= 45) { sp.from = now; return; } // let the models warm up first
-    sp.sum += ms;
-    const m = sp.n - 45;
+    // let the models warm up first: 45 frames, or 3 seconds on a computer that's far too slow
+    if (!sp.from) { if (sp.n < 45 && now - sp.start < 3000) return; sp.from = now; return; }
+    sp.times.push(ms);
+    const m = sp.times.length;
     // decide after 45 frames, or after 4 seconds on a computer that's far too slow for that
     if (m < 45 && !(now - sp.from > 4000 && m >= 8)) return;
-    const avg = sp.sum / m;
+    // the median ignores one-off pauses (a model loading), so only steady slowness counts
+    const avg = sp.times.sort((x, y) => x - y)[m >> 1];
     this.speed = null;
     if (avg > 34) {
       this.maxW = this.W > 1280 ? 1280 : 960;

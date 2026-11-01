@@ -56,7 +56,7 @@ await a.keyboard.press("Escape");
 await shot(a, `${OUT}/01c-home-full.png`, { fullPage: true });
 // pick effects
 await a.click("#lobby [data-open-fx]");
-await a.click('.opt[data-group="bg"][data-value="blur-strong"]');
+await a.click('.opt[data-group="bg"][data-value="blur-light"]');
 await a.click("#tab-look"); await a.click('.opt[data-group="look"][data-value="warm"]');
 await a.click("#tab-light"); await a.click('.opt[data-group="light"][data-value="studio"]');
 await a.click("#tab-face"); await a.click('.sw[data-group="lips"][data-value="rose"]');
@@ -73,7 +73,7 @@ else faceOk(true, "face tracking sees the test face");
 await a.waitForTimeout(1500);
 await shot(a, `${OUT}/02-greenroom-effects.png`);
 const s = await a.evaluate(() => window.__gr.pipe.settings);
-ok(s.bg === "blur-strong" && s.look === "warm" && s.light === "studio" && s.lips === "rose" && s.touchup === 0.6 && s.warp === "none", `settings applied ${JSON.stringify(s)}`);
+ok(s.bg === "blur-light" && s.look === "warm" && s.light === "studio" && s.lips === "rose" && s.touchup === 0.6 && s.warp === "none", `settings applied ${JSON.stringify(s)}`);
 // the rest of the test doesn't need heavy effects; CI machines have no graphics card
 await a.evaluate(() => window.__gr.pipe.applySettings({ bg: "none", look: "natural", light: "off", touchup: 0, lips: "none" }));
 await a.click("#fx-close");
