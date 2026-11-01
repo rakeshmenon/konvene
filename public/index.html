@@ -10,6 +10,7 @@
 <meta name="theme-color" content="#f3f3ef">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preload" href="/fonts/instrument-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/bricolage-grotesque-latin-opsz-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/styles.css">
 <script type="module" src="/app.js"></script>
 </head>
@@ -41,135 +42,223 @@
   <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-send" viewBox="0 0 24 24"><path d="M4.5 12 19.5 5l-4.5 14-3.5-5.5L4.5 12Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></symbol>
+  <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.5.1.7-.2.7-.5v-1.7c-2.6.6-3.2-1.2-3.2-1.2-.4-1.1-1-1.4-1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1 2.8.8.1-.6.3-1 .6-1.3-2.1-.2-4.3-1-4.3-4.6 0-1 .4-1.9 1-2.5-.1-.3-.4-1.2.1-2.6 0 0 .8-.3 2.6 1a9 9 0 0 1 4.8 0c1.8-1.3 2.6-1 2.6-1 .5 1.4.2 2.3.1 2.6.6.6 1 1.5 1 2.5 0 3.6-2.2 4.4-4.3 4.6.3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A9.5 9.5 0 0 0 12 2.5Z"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13.5" width="16" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="7.5" r="1" fill="currentColor"/><circle cx="8" cy="16.5" r="1" fill="currentColor"/></symbol>
+  <symbol id="person" viewBox="0 0 200 150"><path d="M38 150c2-30 20-46 46-51l6-2c-9-6-15-17-15-30 0-19 11-33 25-33s25 14 25 33c0 13-6 24-15 30l6 2c26 5 44 21 46 51Z" fill="#1d2c26"/></symbol>
 </svg>
 
 <main id="main">
 
-  <section class="prejoin" id="prejoin" aria-labelledby="pj-title">
-    <header class="nav">
-      <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</a>
-      <nav class="nav-links" aria-label="Site">
-        <a href="/self-host.html">Run your own</a>
-        <a href="/privacy.html">Privacy</a>
-        <a href="{{REPO}}">GitHub</a>
-      </nav>
+  <section class="home" id="prejoin" aria-labelledby="pj-title">
+    <header class="nav" id="nav">
+      <div class="wrap nav-in">
+        <a class="brand" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</a>
+        <nav class="nav-links" aria-label="Site">
+          <a href="#private">How it's private</a>
+          <a href="#features">Features</a>
+          <a href="#open-source">Open source</a>
+          <a href="/privacy.html">Privacy</a>
+        </nav>
+        <div class="nav-end">
+          <a class="nav-gh" href="{{REPO}}" aria-label="Konvene on GitHub" title="Konvene on GitHub"><svg aria-hidden="true"><use href="#i-github"/></svg></a>
+          <button class="btn primary small nav-start" type="button" id="nav-start">Start a call</button>
+        </div>
+      </div>
     </header>
 
-    <div class="hero">
-      <div class="word-wrap">
-        <canvas class="hero-word" id="hero-word" role="img" aria-label="just us."></canvas>
-        <p class="word-caption" id="word-caption">That's you, live. Only you can see this.</p>
-      </div>
-      <div class="hero-row">
-        <div class="hero-copy">
-          <h1 id="pj-title">Video calls that stay between you.</h1>
-          <p class="lede" id="pj-lede">Konvene connects you straight to the people you call. No account, no app to install, and no server in the middle keeping a copy. Free, in your browser.</p>
+    <div class="wrap hero">
+      <div class="hero-copy">
+        <p class="pill"><span class="live" aria-hidden="true"></span>Free and open source. No account needed.</p>
+        <h1 id="pj-title">Video calls that stay between you.</h1>
+        <p class="lede">Konvene connects your browser straight to the people you call. No app, no sign-up, and no server in the middle keeping a copy. Effects, captions and noise reduction all run on your own device.</p>
+        <div class="hero-cta">
+          <button class="btn primary big start-btn" type="button" id="start-btn">Start a call</button>
+          <p class="start-note">You'll check your camera and microphone first. Nobody sees or hears you until you join.</p>
         </div>
-        <div class="hero-action">
-          <button class="btn primary start-btn" type="button" id="start-btn">Start a call</button>
-          <p class="start-note">Next, you'll check your camera and microphone. Nobody sees or hears you until you join.</p>
-          <ul class="trust">
-            <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>No sign-up</li>
-            <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Encrypted device to device</li>
-            <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Nothing stored</li>
-          </ul>
-          <form id="code-form" class="code-form" role="search" autocomplete="off">
-            <label for="code-input">Got an invite?</label>
-            <div class="code-row">
-              <input id="code-input" name="call-link" type="search" inputmode="url" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="Paste the link or code">
-              <button class="btn secondary" type="submit">Join</button>
+        <form id="code-form" class="code-form" role="search" autocomplete="off">
+          <label for="code-input">Got an invite?</label>
+          <div class="code-row">
+            <input id="code-input" name="call-link" type="search" inputmode="url" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="Paste the link or code">
+            <button class="btn secondary" type="submit">Join</button>
+          </div>
+        </form>
+      </div>
+
+      <figure class="demo" aria-label="A Konvene call in progress: the background is blurred on the laptop, a guest asks to join and is let in, and live captions appear.">
+        <div class="demo-win" aria-hidden="true">
+          <div class="demo-bar">
+            <span class="demo-lights"><i></i><i></i><i></i></span>
+            <span class="demo-code"><svg><use href="#i-lock"/></svg>abc-def-ghj</span>
+            <span class="demo-count"><span class="c2">2 in the call</span><span class="c3">3 in the call</span></span>
+          </div>
+          <div class="demo-stage">
+            <div class="dt dt-main">
+              <div class="room">
+                <span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span>
+              </div>
+              <svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b3d35"/><stop offset=".55" stop-color="#1c2b25"/><stop offset="1" stop-color="#16231e"/></linearGradient></defs><path d="M38 150c2-30 20-46 46-51l6-2c-9-6-15-17-15-30 0-19 11-33 25-33s25 14 25 33c0 13-6 24-15 30l6 2c26 5 44 21 46 51Z" fill="url(#pg)"/></svg>
+              <span class="ring"></span>
+              <span class="dt-name">You</span>
+              <span class="dt-chip"><svg><use href="#i-studio"/></svg>Background blurred on this laptop</span>
+              <p class="cap"><b>You</b><span>Captions are made right here, on this laptop.</span></p>
             </div>
-          </form>
+            <div class="dt dt-b"><span class="av">H</span><span class="dt-name"><svg><use href="#i-mic-off"/></svg>Host</span></div>
+            <div class="dt dt-c"><span class="av">G</span><span class="dt-name">Guest</span></div>
+            <div class="d-knock"><p><b>Guest</b> wants to join</p><span><i class="k-no">Don't let in</i><i class="k-yes">Let in</i></span></div>
+          </div>
+          <div class="demo-dock">
+            <i><svg><use href="#i-mic"/></svg></i><i><svg><use href="#i-cam"/></svg></i><i class="on"><svg><use href="#i-cc"/></svg></i><i><svg><use href="#i-screen"/></svg></i><i class="end"><svg><use href="#i-leave"/></svg></i>
+          </div>
         </div>
-      </div>
+      </figure>
     </div>
 
-    <section class="privacy" aria-labelledby="privacy-title">
-      <div class="privacy-head">
+    <section class="wrap ruled private" id="private" aria-labelledby="private-title">
+      <div class="private-head">
         <div>
-          <h2 id="privacy-title">Private by design, not by policy.</h2>
-          <p class="section-lede">Most video apps promise to look after your data. Konvene is built so there is nothing to look after.</p>
+          <h2 id="private-title">Your call goes to the people in it. Nowhere else.</h2>
+          <p class="section-lede">Most video apps send your call through their servers. Konvene connects browsers directly and encrypts everything between them, so there's no middle to trust.</p>
         </div>
-        <figure class="route" aria-label="Most video apps send your call through their servers. Konvene sends it straight from you to the people you call, encrypted, with nothing in between.">
-          <div class="route-row is-them">
-            <p class="route-label">Most video apps</p>
-            <div class="route-line" aria-hidden="true">
+        <figure class="lanes" aria-label="Most video apps: your call goes from you, through their servers, to the other person. Konvene: your call goes straight from you to them, encrypted.">
+          <div class="lane is-them" aria-hidden="true">
+            <p class="lane-label">Most video apps</p>
+            <div class="lane-line">
               <span class="node">You</span>
-              <span class="wire"></span>
-              <span class="hub">Their servers<small>your call passes through</small></span>
-              <span class="wire"></span>
+              <span class="wire"><i class="pk"></i></span>
+              <span class="hub"><svg><use href="#i-server"/></svg>Their servers</span>
+              <span class="wire"><i class="pk late"></i></span>
               <span class="node">Them</span>
             </div>
           </div>
-          <div class="route-row is-us">
-            <p class="route-label">Konvene</p>
-            <div class="route-line" aria-hidden="true">
+          <div class="lane is-us" aria-hidden="true">
+            <p class="lane-label">Konvene</p>
+            <div class="lane-line">
               <span class="node">You</span>
-              <span class="wire"><span>Straight to them, encrypted</span></span>
+              <span class="wire"><i class="pk"></i><i class="pk d2"></i><i class="pk d3"></i><span class="wire-tag"><svg><use href="#i-lock"/></svg>Encrypted, browser to browser</span></span>
               <span class="node">Them</span>
             </div>
           </div>
         </figure>
       </div>
-      <dl class="claims">
-        <div><dt>Straight to them</dt><dd>Video, voice, screens and messages travel directly between your browsers, encrypted the whole way.</dd></div>
-        <div><dt>Nothing kept</dt><dd>No server records your call or your chat. Messages disappear when you leave, and recordings stay on the device that made them.</dd></div>
+      <dl class="facts">
+        <div><dt>Straight to them</dt><dd>Video, voice, screens and chat travel directly between your browsers, encrypted the whole way.</dd></div>
+        <div><dt>Nothing kept</dt><dd>No server records your call or your messages. Recordings stay on the device that made them.</dd></div>
         <div><dt>No account</dt><dd>No email, phone number or password. Type a name and start talking.</dd></div>
-        <div><dt>No tracking</dt><dd>No cookies, no analytics, no ads. Nothing about you is sold because nothing about you is collected.</dd></div>
-        <div><dt>Your face stays home</dt><dd>Background blur, lighting and effects are worked out on your own device. Your camera is never uploaded to be processed.</dd></div>
-        <div><dt>Recording is never secret</dt><dd>Recording asks first and shows everyone a badge with the name of the person recording.</dd></div>
+        <div><dt>No tracking</dt><dd>No cookies, no analytics, no ads. Nothing about you is collected, so nothing can be sold.</dd></div>
+        <div><dt>Your face stays home</dt><dd>Blur, lighting and touch-up are worked out on your own device. Your camera is never uploaded.</dd></div>
+        <div><dt>Recording is never secret</dt><dd>Recording asks first and shows everyone the name of the person recording.</dd></div>
       </dl>
-      <p class="fine-print">Being straight with you: as on any video call, the people you talk to and the public services that help browsers find each other can see your IP address. <a href="/privacy.html">Read the privacy details</a></p>
+      <p class="fine-print">As on any video call, the people you talk to and the public services that help browsers find each other can see your IP address. <a href="/privacy.html">Read the privacy details</a></p>
     </section>
 
-    <section class="smart-features" aria-labelledby="smart-title">
-      <h2 id="smart-title">Smart, without the cloud.</h2>
-      <p class="section-lede">Features that usually need someone else's servers, done on your own device.</p>
-      <dl class="smart-list">
-        <div><dt>Steps away when you do</dt><dd>Leave your desk and your video pauses with a "Stepped away" card. Sit back down and you're live again.</dd></div>
-        <div><dt>Keeps you in frame</dt><dd>Lean back or shift around and the picture gently follows you.</dd></div>
-        <div><dt>Fixes a dark room</dt><dd>Calling from a dim room? Your video brightens on its own.</dd></div>
-        <div><dt>Notices when you're muted</dt><dd>Start talking with your mic off and Konvene tells you, before anyone else has to.</dd></div>
-        <div><dt>Knows you from your chair</dt><dd>Background blur that follows your hair and shoulders and leaves the furniture out.</dd></div>
-      </dl>
-      <p class="also">Plus face touch-up and makeup, background blur and virtual backgrounds, screen sharing, chat, reactions, raise hand and recording, for up to six people.</p>
-    </section>
-
-    <section class="open-source" id="open-source" aria-labelledby="os-title">
-      <div class="os-head">
-        <div>
-          <h2 id="os-title">Open source, all of it.</h2>
-          <p class="section-lede">Every promise on this page is in code anyone can read. Run Konvene on your own domain, change it, make it yours.</p>
-          <div class="os-actions">
-            <a class="btn primary" href="{{REPO}}">View the code on GitHub</a>
-            <a class="btn secondary" href="/self-host.html">How to run your own</a>
+    <section class="wrap ruled features" id="features" aria-labelledby="features-title">
+      <h2 id="features-title">Everything a good call needs, done on your device.</h2>
+      <p class="section-lede">The things other apps send to their cloud, Konvene does in your browser.</p>
+      <div class="explorer">
+        <div class="ex-tabs" role="tablist" aria-label="Features" aria-orientation="vertical">
+          <button role="tab" id="ft-looks" aria-controls="fp-looks" aria-selected="true"><strong>Background and looks</strong><span>Blur, virtual backgrounds, lighting and touch-up, drawn by your own graphics chip before the picture leaves.</span></button>
+          <button role="tab" id="ft-cc" aria-controls="fp-cc" aria-selected="false" tabindex="-1"><strong>Live captions</strong><span>Speech becomes text on the device. Your voice is never sent off to be transcribed.</span></button>
+          <button role="tab" id="ft-noise" aria-controls="fp-noise" aria-selected="false" tabindex="-1"><strong>Noise reduction</strong><span>Keyboards, fans and traffic filtered out on your device, or original sound for music.</span></button>
+          <button role="tab" id="ft-door" aria-controls="fp-door" aria-selected="false" tabindex="-1"><strong>Passcode and asking to join</strong><span>Lock a call with a passcode and let each person in yourself. Still no accounts.</span></button>
+          <button role="tab" id="ft-weak" aria-controls="fp-weak" aria-selected="false" tabindex="-1"><strong>Weak connections</strong><span>On a poor line, video steps down for that one person, and drops to voice before the sound breaks up.</span></button>
+          <button role="tab" id="ft-rec" aria-controls="fp-rec" aria-selected="false" tabindex="-1"><strong>Recording in the open</strong><span>Recording asks first, shows everyone who is recording, and saves on the recorder's device.</span></button>
+        </div>
+        <div class="ex-view">
+          <div class="ex-panel" role="tabpanel" id="fp-looks" aria-labelledby="ft-looks">
+            <div class="scene" aria-hidden="true">
+              <div class="dt dt-solo blurred"><div class="room"><span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span></div><svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><use href="#person"/></svg><span class="dt-name">You</span></div>
+              <div class="chips"><span class="on">Blur</span><span>Virtual background</span><span class="on">Studio light</span><span>Touch up</span><span>Colour looks</span></div>
+            </div>
+          </div>
+          <div class="ex-panel" role="tabpanel" id="fp-cc" aria-labelledby="ft-cc" hidden>
+            <div class="scene" aria-hidden="true">
+              <div class="dt dt-solo"><div class="room"><span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span></div><svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><use href="#person"/></svg>
+                <div class="caps"><p><b>Guest</b>Can everyone see the plan on screen?</p><p><b>You</b>Yes, and nothing we say leaves this call.</p></div>
+              </div>
+            </div>
+          </div>
+          <div class="ex-panel" role="tabpanel" id="fp-noise" aria-labelledby="ft-noise" hidden>
+            <div class="scene waves" aria-hidden="true">
+              <div class="wave-row"><p>Your room</p><svg viewBox="0 0 320 60" preserveAspectRatio="none"><path class="w-noisy" d="M0 30h320"/></svg></div>
+              <div class="wave-row"><p>What they hear</p><svg viewBox="0 0 320 60" preserveAspectRatio="none"><path class="w-clean" d="M0 30h320"/></svg></div>
+              <div class="chips"><span>Standard</span><span class="on">Strong</span><span>Original sound</span></div>
+            </div>
+          </div>
+          <div class="ex-panel" role="tabpanel" id="fp-door" aria-labelledby="ft-door" hidden>
+            <div class="scene door" aria-hidden="true">
+              <div class="pass"><p>Passcode</p><span>k7m2qp</span></div>
+              <div class="d-knock static"><p><b>Guest</b> wants to join</p><span><i class="k-no">Don't let in</i><i class="k-yes">Let in</i></span></div>
+              <p class="door-note">Until you let them in, they get no video, voice, chat or names.</p>
+            </div>
+          </div>
+          <div class="ex-panel" role="tabpanel" id="fp-weak" aria-labelledby="ft-weak" hidden>
+            <div class="scene" aria-hidden="true">
+              <div class="dt dt-solo paused"><span class="av big">G</span><span class="dt-name">Guest</span><span class="bars"><i></i><i></i><i></i></span><p class="paused-note">Video paused to keep the sound clear</p></div>
+            </div>
+          </div>
+          <div class="ex-panel" role="tabpanel" id="fp-rec" aria-labelledby="ft-rec" hidden>
+            <div class="scene" aria-hidden="true">
+              <div class="rec-pill"><span></span>Guest is recording</div>
+              <div class="dt dt-solo"><div class="room"><span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span></div><svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><use href="#person"/></svg><span class="dt-name">You</span></div>
+            </div>
           </div>
         </div>
-        <figure class="term" aria-label="Three commands to run Konvene on your computer">
-          <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i></div>
-          <pre><code><span class="p">$</span> git clone {{REPO}}
+      </div>
+      <p class="also">Also in every call: screen sharing, chat, reactions, raise hand, picture in picture, pin and full screen, and device choice. Up to six people.</p>
+    </section>
+
+    <section class="source" id="open-source" aria-labelledby="os-title">
+      <div class="wrap source-in">
+        <div class="source-head">
+          <div>
+            <h2 id="os-title">Open source, every line.</h2>
+            <p class="section-lede">You don't have to take the privacy claims on trust. Read the code, or run Konvene on your own domain in a few minutes.</p>
+            <div class="source-actions">
+              <a class="btn light" href="{{REPO}}"><svg aria-hidden="true"><use href="#i-github"/></svg>View the code on GitHub</a>
+              <a class="btn ghost" href="/self-host.html">How to run your own</a>
+            </div>
+          </div>
+          <figure class="term" aria-label="Three commands to run Konvene on your computer">
+            <div class="term-bar" aria-hidden="true"><i></i><i></i><i></i></div>
+            <pre><code><span class="p">$</span> git clone {{REPO}}
 <span class="p">$</span> cd konvene &amp;&amp; npm install
 <span class="p">$</span> npm run dev
 <span class="o">Konvene is running at http://localhost:8790</span></code></pre>
-        </figure>
+          </figure>
+        </div>
+        <dl class="source-points">
+          <div><dt>Read every line</dt><dd>The code that keeps calls private is public, including what runs in your browser.</dd></div>
+          <div><dt>Deploy in minutes</dt><dd>One click to Netlify or Vercel, or put the built folder on any web host.</dd></div>
+          <div><dt>Stays open</dt><dd>AGPL licensed. Anyone who runs a changed version for others shares their code too.</dd></div>
+        </dl>
+        <!--demo--><p class="demo-note">You're on the public demo, run by the author. It's the same code you can deploy yourself.</p><!--/demo-->
       </div>
-      <dl class="smart-list os-list">
-        <div><dt>Read every line</dt><dd>No hidden servers, no tracking. The code that keeps your calls private is public, so you don't have to take our word for it.</dd></div>
-        <div><dt>Deploy in minutes</dt><dd>One click to Netlify or Vercel, or put the built folder on any web host. Your settings and keys live in your own environment file.</dd></div>
-        <div><dt>Stays open</dt><dd>Licensed under the AGPL. Anyone can change Konvene, and anyone who runs a changed version for others shares their code too.</dd></div>
-      </dl>
-      <!--demo--><p class="also">You're on the public demo, run by the author. It's the same code you can deploy yourself.</p><!--/demo-->
     </section>
 
-    <section class="cta-band" aria-labelledby="cta-title">
-      <h2 id="cta-title">Start a private call.</h2>
-      <p>Free. Nothing to install. Send the link and you're talking.</p>
-      <button class="btn primary" type="button" id="cta-start">Start a call</button>
+    <section class="wrap faq" aria-labelledby="faq-title">
+      <h2 id="faq-title">Questions</h2>
+      <div class="faq-list">
+        <details><summary>Is Konvene really free?</summary><p>Yes. There's no paid plan and no ads. Calls go straight between browsers, so they cost almost nothing to run.</p></details>
+        <details><summary>Can anyone else see or hear my call?</summary><p>Only the people in it. Video, voice, screens and chat go directly between your browsers, encrypted. On some strict networks the call is passed through a relay, still encrypted, and the relay can't see or hear it.</p></details>
+        <details><summary>Do I need an account or an app?</summary><p>No. Open the link, type a name and join. Konvene works in Chrome, Edge, Safari and Firefox, on computers and phones.</p></details>
+        <details><summary>How many people can join?</summary><p>Up to six. Each browser sends its video to each other person, which keeps the call private and limits its size.</p></details>
+        <details><summary>What do people in the call learn about me?</summary><p>The name you type, and, as on any video call, your IP address.</p></details>
+        <details><summary>Can I run my own copy?</summary><p>Yes. Konvene is open source under the AGPL. Deploy it to Netlify or Vercel with one click, or put it on any web host. <a href="/self-host.html">How to run your own</a></p></details>
+      </div>
     </section>
 
-    <footer class="site-foot">
+    <section class="wrap cta-band" aria-labelledby="cta-title">
+      <div>
+        <h2 id="cta-title">Start a private call.</h2>
+        <p>Free, with nothing to install. Send the link and you're talking.</p>
+      </div>
+      <button class="btn primary big" type="button" id="cta-start">Start a call</button>
+    </section>
+
+    <footer class="wrap ruled site-foot">
       <a class="brand small" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo"/></svg>Konvene</a>
-      <p>Free, private video calls in your browser.<!--demo--> This is the public demo.<!--/demo--></p>
+      <p>Free, private video calls in your browser.<!--demo--> This is the public demo.<!--/demo--> Made by <a href="https://sublimecoder.io">Rakesh Menon</a>.</p>
       <nav aria-label="Footer"><a href="/self-host.html">Run your own</a><a href="{{REPO}}">GitHub</a><a href="/privacy.html">Privacy</a></nav>
     </footer>
   </section>

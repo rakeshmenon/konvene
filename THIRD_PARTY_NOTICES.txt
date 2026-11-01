@@ -150,6 +150,12 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ================================================================
+@fontsource-variable/bricolage-grotesque 5.3.0 (Bricolage Grotesque font, headings on the home page)
+================================================================
+Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+Licensed under the SIL Open Font License, Version 1.1 (full text in the Instrument Sans entry above).
+
+================================================================
 @sapphi-red/web-noise-suppressor 0.4.1 (RNNoise audio worklet)
 ================================================================
 MIT License

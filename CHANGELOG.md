@@ -4,6 +4,8 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Changed: a new home page. Light, like the call screen, with Bricolage Grotesque headings (self-hosted, OFL). The hero shows a Konvene call that plays a short loop: the background blurs on the laptop, a guest asks to join and is let in, and captions appear (pure CSS, paused when off screen, still for reduced motion). Then where your call goes (moving packets, only while visible), a feature explorer with a small scene per feature, an open-source band, questions and answers, and a footer. The old "just us." headline with the live camera is gone; the home page no longer touches the camera at all.
+
 - Added: a Noise reduction choice next to the microphone (pre-join page, Devices panel and the mic button's menu): standard (the browser's echo cancellation, noise suppression and level control, as before), strong (adds RNNoise, a small neural network run in an AudioWorklet on your device, for keyboards, fans and traffic) and original sound for music (no processing; use headphones). Remembered for next time. RNNoise's files are served from the site.
 
 - Added: live captions, made on the devices in the call (Chrome on a computer, version 139 or newer, using its on-device speech recognition with `processLocally`; never a cloud service). Press the CC button or C. Each person's browser captions their own voice and sends the words only to the people who turned captions on; anyone whose browser can't is captioned by the viewer's browser from the audio it receives. Other browsers still see captions from people on Chrome. The first time, Chrome downloads a language pack once.

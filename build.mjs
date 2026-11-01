@@ -60,6 +60,7 @@ await build({
 
 mkdirSync(`${OUT}/fonts`, { recursive: true });
 copyFileSync("node_modules/@fontsource-variable/instrument-sans/files/instrument-sans-latin-wdth-normal.woff2", `${OUT}/fonts/instrument-sans-latin-wdth-normal.woff2`);
+copyFileSync("node_modules/@fontsource-variable/bricolage-grotesque/files/bricolage-grotesque-latin-opsz-normal.woff2", `${OUT}/fonts/bricolage-grotesque-latin-opsz-normal.woff2`);
 mkdirSync(`${OUT}/vendor/mediapipe/wasm`, { recursive: true });
 for (const f of ["vision_wasm_internal.js", "vision_wasm_internal.wasm", "vision_wasm_nosimd_internal.js", "vision_wasm_nosimd_internal.wasm"]) {
   copyFileSync(`node_modules/@mediapipe/tasks-vision/wasm/${f}`, `${OUT}/vendor/mediapipe/wasm/${f}`);

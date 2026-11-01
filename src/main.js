@@ -6,6 +6,7 @@ import { join, makeRoomCode } from "./net.js";
 import { iceServers } from "./config.js";
 import { CallRecorder } from "./recorder.js";
 import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
+import { initHome } from "./home.js";
 import { CAN_LOCAL, findLanguage, install as installCaptions, Transcriber } from "./captions.js";
 import { LOOKS, LIGHTS } from "./fx.js";
 import { BACKGROUNDS } from "./backgrounds.js";
@@ -515,51 +516,6 @@ function closeDeviceMenu() {
   $$("[data-menu]").forEach((b) => b.setAttribute("aria-expanded", "false"));
 }
 
-// the home page headline: "just us." with your live (processed) camera showing through the letters
-function heroWord() {
-  const c = $("#hero-word");
-  if (!c) return;
-  const g = c.getContext("2d");
-  let fit = null;
-  const draw = () => {
-    if (state.inCall) return;
-    requestAnimationFrame(draw);
-    if (document.hidden || c.offsetParent === null) return;
-    const dpr = Math.min(2, devicePixelRatio || 1);
-    const W = Math.round(c.clientWidth * dpr), H = Math.round(c.clientHeight * dpr);
-    if (!W || !H) return;
-    if (c.width !== W || c.height !== H) { c.width = W; c.height = H; fit = null; }
-    const word = codeFromHash() ? "join us." : "just us.";
-    if (!fit || fit.word !== word) {
-      g.font = '700 100px "Instrument Sans"';
-      const m = g.measureText(word);
-      const size = Math.min((100 * W) / m.width, (100 * H * 0.98) / (m.actualBoundingBoxAscent + m.actualBoundingBoxDescent));
-      g.font = `700 ${size}px "Instrument Sans"`;
-      const mm = g.measureText(word);
-      fit = { word, size, x: 0, y: (H + mm.actualBoundingBoxAscent - mm.actualBoundingBoxDescent) / 2 };
-    }
-    g.globalCompositeOperation = "source-over";
-    g.clearRect(0, 0, W, H);
-    g.font = `700 ${fit.size}px "Instrument Sans"`;
-    g.fillStyle = "#e7eee9";
-    g.fillText(word, fit.x, fit.y);
-    const src = state.pipe.out;
-    const live = state.cam && state.pipe.camOn && !state.pipe.showingCard && src.width > 0;
-    // "That's you, live" only makes sense while your camera fills the letters
-    const cap = $("#word-caption");
-    if (cap && cap.style.visibility !== (live ? "visible" : "hidden")) cap.style.visibility = live ? "visible" : "hidden";
-    if (live) {
-      g.globalCompositeOperation = "source-in";
-      const sc = Math.max(W / src.width, H / src.height);
-      const dw = src.width * sc, dh = src.height * sc;
-      g.save(); g.translate(W, 0); g.scale(-1, 1);
-      g.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh);
-      g.restore();
-      g.globalCompositeOperation = "source-over";
-    }
-  };
-  document.fonts.load('700 100px "Instrument Sans"').finally(() => requestAnimationFrame(draw));
-}
 
 /* ---------------- tiles and layout ---------------- */
 
@@ -1794,6 +1750,7 @@ async function init() {
   if (!rejoin) route(inv);
   $("#start-btn").addEventListener("click", startCall);
   $("#cta-start").addEventListener("click", startCall);
+  $("#nav-start").addEventListener("click", startCall);
   $("#code-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const v = $("#code-input").value;
@@ -1829,7 +1786,7 @@ async function init() {
   buildSignatures();
   buildDevicePickers($("#call-devices"));
   buildDevicePickers($("#lobby-devices"));
-  heroWord();
+  initHome();
 
   state.turnReady = LOCAL ? Promise.resolve([]) : iceServers();
   await state.pipe.start();
