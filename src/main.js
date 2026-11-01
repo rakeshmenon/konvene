@@ -2,7 +2,7 @@ import { dlog } from "./debug.js"; // first, so it sees every connection
 import { Pipeline } from "./pipeline.js";
 import { Pip, PIP_DOC, PIP_VIDEO } from "./pip.js";
 import { Quality, TIERS, worse } from "./quality.js";
-import { join, makeRoomCode } from "./net.js";
+import { join, makeRoomCode, randomChars } from "./net.js";
 import { iceServers, CONFIG } from "./config.js";
 import { CallRecorder } from "./recorder.js";
 import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
@@ -998,10 +998,7 @@ function loadSec() {
   return { pass: "pass" in s ? s.pass : CONFIG.passcodeDefault, wait: "wait" in s ? s.wait : CONFIG.askFirstDefault };
 }
 function saveSec() { try { localStorage.setItem(SEC_KEY, JSON.stringify({ pass: $("#sec-pass").checked, wait: $("#sec-wait").checked })); } catch { /* private */ } }
-function makePasscode() {
-  const abc = "abcdefghjkmnpqrstuvwxyz23456789";
-  return Array.from(crypto.getRandomValues(new Uint8Array(6)), (b) => abc[b % abc.length]).join("");
-}
+function makePasscode() { return randomChars(6); }
 
 // what we tell someone who just connected; someone still waiting learns nothing about who's here
 function helloFor(id) {

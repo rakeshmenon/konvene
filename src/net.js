@@ -5,12 +5,25 @@
 import { joinRoom as trysteroJoin, selfId as trysteroSelf } from "trystero";
 import { CONFIG } from "./config.js";
 
-export function makeRoomCode() {
-  const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  const b = crypto.getRandomValues(new Uint8Array(9));
+// Letters and digits that can't be mistaken for each other (no i, l, o, 0, 1)
+const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+
+// n random characters, every one equally likely: bytes at or above the largest multiple of the
+// alphabet's length are thrown away, so the modulo doesn't favour the first few letters
+export function randomChars(n) {
+  const limit = 256 - (256 % ALPHABET.length);
   let s = "";
-  for (let i = 0; i < 9; i++) { s += alphabet[b[i] % alphabet.length]; if (i === 2 || i === 5) s += "-"; }
+  while (s.length < n) {
+    for (const b of crypto.getRandomValues(new Uint8Array(n * 2))) {
+      if (b < limit && s.length < n) s += ALPHABET[b % ALPHABET.length];
+    }
+  }
   return s;
+}
+
+export function makeRoomCode() {
+  const c = randomChars(9);
+  return `${c.slice(0, 3)}-${c.slice(3, 6)}-${c.slice(6)}`;
 }
 
 // pass: the call's passcode. Locally it's only compared (like a wrong Trystero password, the
