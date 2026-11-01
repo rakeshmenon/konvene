@@ -1878,6 +1878,8 @@ async function init() {
   const hide = { recording: ["#rec-btn"], captions: ["#cc-btn"], screenshare: ["#share-btn"], chat: ['[data-panel="chat"]'], effects: ["[data-open-fx]"], reactions: [".react-wrap"] };
   for (const [f, sels] of Object.entries(hide)) if (OFF(f)) for (const s of sels) for (const e of $$(s)) e.hidden = true;
   if (OFF("effects")) state.pipe.applySettings({ bg: "none", look: "natural", light: "off", ...FACE_DEFAULTS });
+  // phones and tablets can't share a screen from the browser; don't offer a button that only says so
+  if (!navigator.mediaDevices.getDisplayMedia) $("#share-btn").hidden = true;
   $("#share-btn").addEventListener("click", toggleShare);
   $("#cc-btn").addEventListener("click", toggleCaptions);
   // can this browser caption your voice on the device right now? (checks only, never downloads)

@@ -35,7 +35,9 @@ Most video apps promise to look after your data. Konvene is built so there is no
 
 ## Features
 
-<img src="docs/images/the-call.png" alt="A Konvene call: a blurred background, live captions, and three people." width="100%">
+<img src="docs/images/the-call.webp" alt="A Konvene call between two people, both backgrounds blurred on their own devices, with live captions underneath." width="100%">
+
+<sub>A real Konvene call. The two people are VRoid sample characters standing in for cameras.</sub>
 
 | | |
 |---|---|

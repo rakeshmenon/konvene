@@ -285,3 +285,15 @@ If the Work includes a "NOTICE" text file as part of its distribution, then any 
 9. Accepting Warranty or Additional Liability. While redistributing the Work or Derivative Works thereof, You may choose to offer, and charge a fee for, acceptance of support, warranty, indemnity, or other liability obligations and/or rights consistent with this License. However, in accepting such obligations, You may act only on Your own behalf and on Your sole responsibility, not on behalf of any other Contributor, and only if You agree to indemnify, defend, and hold each Contributor harmless for any liability incurred by, or claims asserted against, such Contributor by reason of your accepting any such warranty or additional liability.
 
 END OF TERMS AND CONDITIONS
+
+================================================================
+VRoid sample characters (AvatarSample_A and AvatarSample_C), in screenshots only
+================================================================
+The people in the home page and README screenshots are two of
+VRoid Studio's sample characters, rendered as stand-in cameras.
+Made by VRoid Project, pixiv Inc. Not CC0; copyright is not waived.
+Used under VRoid Hub's conditions of use for these models:
+corporate and commercial use allowed, alterations allowed,
+attribution not required.
+https://vroid.pixiv.help/hc/en-us/articles/4402394424089
+The model files themselves are not part of this repository.

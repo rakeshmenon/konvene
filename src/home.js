@@ -40,18 +40,67 @@ export function initHome() {
     });
   });
 
+  // three moments in a call: real screenshots, one step at a time
+  const moments = $("[data-moments]", home);
+  const STEP = 6000;
+  let seen = false, hold = false, timer = 0, left = STEP, started = 0;
+  const calm = matchMedia("(prefers-reduced-motion: reduce)");
+  const mTabs = moments ? [...moments.querySelectorAll('[role="tab"]')] : [];
+  // the bar under the current step fills over STEP; pausing keeps its place
+  const stopClock = () => { if (timer) { clearTimeout(timer); timer = 0; left = Math.max(0, left - (performance.now() - started)); } };
+  const sync = () => {
+    stopClock();
+    const run = seen && !hold && !calm.matches;
+    moments.classList.toggle("paused", !run);
+    if (run) { started = performance.now(); timer = setTimeout(next, left); }
+  };
+  const showMoment = (tab, focus) => {
+    for (const t of mTabs) { const on = t === tab; t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1; }
+    for (const img of moments.querySelectorAll(".m-shot")) img.classList.toggle("on", img.dataset.for === tab.id);
+    $("#m-view", moments).setAttribute("aria-labelledby", tab.id);
+    if (focus) tab.focus();
+    clearTimeout(timer); timer = 0; left = STEP;
+    moments.classList.remove("playing"); void moments.offsetWidth; // restart the bar
+    if (!calm.matches) moments.classList.add("playing");
+    sync();
+  };
+  const next = () => { timer = 0; const i = mTabs.findIndex((t) => t.getAttribute("aria-selected") === "true"); showMoment(mTabs[(i + 1) % mTabs.length]); };
+  if (moments) {
+    moments.style.setProperty("--m-time", STEP + "ms");
+    mTabs.forEach((t, i) => {
+      t.addEventListener("click", () => showMoment(t));
+      t.addEventListener("keydown", (e) => {
+        const k = e.key; let n = null;
+        if (k === "ArrowDown" || k === "ArrowRight") n = mTabs[(i + 1) % mTabs.length];
+        else if (k === "ArrowUp" || k === "ArrowLeft") n = mTabs[(i - 1 + mTabs.length) % mTabs.length];
+        else if (k === "Home") n = mTabs[0];
+        else if (k === "End") n = mTabs[mTabs.length - 1];
+        if (n) { e.preventDefault(); showMoment(n, true); }
+      });
+    });
+    // reading or pointing at it holds the current step; leaving carries on from where it was
+    moments.addEventListener("pointerenter", () => { hold = true; sync(); });
+    moments.addEventListener("pointerleave", () => { hold = false; sync(); });
+    moments.addEventListener("focusin", () => { hold = true; sync(); });
+    moments.addEventListener("focusout", (e) => { if (!moments.contains(e.relatedTarget)) { hold = false; sync(); } });
+    if (!calm.matches) moments.classList.add("playing");
+  }
+
   // moving parts run only while you can see them
-  const lanes = $(".lanes", home), demo = $(".demo-win", home);
+  const lanes = $(".lanes", home);
   if ("IntersectionObserver" in window) {
     const io = new IntersectionObserver((entries) => {
       for (const e of entries) {
         if (e.target === lanes) lanes.classList.toggle("on", e.isIntersecting);
-        if (e.target === demo) demo.classList.toggle("still", !e.isIntersecting);
+        if (e.target === moments) { seen = e.isIntersecting; sync(); }
       }
-    }, { threshold: 0.2 });
+    }, { threshold: 0.35 });
     if (lanes) io.observe(lanes);
-    if (demo) io.observe(demo);
-  } else if (lanes) lanes.classList.add("on");
+    if (moments) io.observe(moments);
+  } else {
+    if (lanes) lanes.classList.add("on");
+    if (moments) { seen = true; sync(); }
+  }
 
   // the two waves: a noisy room, and the same voice with the noise taken out
   let seed = 7;

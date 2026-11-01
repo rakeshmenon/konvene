@@ -4,6 +4,9 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Changed: the home page shows real Konvene screens instead of a drawn call window: three moments (check how you look, decide who comes in, talk with captions) that play in turn, and real screenshots in the features explorer. The people are VRoid sample characters standing in for cameras.
+- Fixed: on phones the call controls ran off the right edge of the screen. They now sit in two rows, and Share screen is hidden on browsers that can't share a screen.
+
 ## 1.1.0 (2026-11-01)
 
 - Added: customising without changing the code. `KONVENE_NAME` (your name in titles, the wordmark and messages; a renamed copy credits Konvene in its footer), `KONVENE_MAX_PEOPLE` (2 to 8, now enforced: whoever joined last steps back when a call is full), `KONVENE_DISABLE` (switch off recording, captions, screen sharing, chat, effects or reactions), `KONVENE_PASSCODE_DEFAULT` and `KONVENE_ASK_FIRST_DEFAULT`, and a `custom/` folder for your logo, icons, link preview picture and `custom.css` colour tokens (see `custom.example/` and `docs/customising.md`). The home page's colours are now tokens too.

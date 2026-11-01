@@ -56,7 +56,6 @@
   <symbol id="i-github" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2.5a9.5 9.5 0 0 0-3 18.5c.5.1.7-.2.7-.5v-1.7c-2.6.6-3.2-1.2-3.2-1.2-.4-1.1-1-1.4-1-1.4-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.5 2.3 1 2.8.8.1-.6.3-1 .6-1.3-2.1-.2-4.3-1-4.3-4.6 0-1 .4-1.9 1-2.5-.1-.3-.4-1.2.1-2.6 0 0 .8-.3 2.6 1a9 9 0 0 1 4.8 0c1.8-1.3 2.6-1 2.6-1 .5 1.4.2 2.3.1 2.6.6.6 1 1.5 1 2.5 0 3.6-2.2 4.4-4.3 4.6.3.3.6.9.6 1.8v2.7c0 .3.2.6.7.5A9.5 9.5 0 0 0 12 2.5Z"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" fill="none" stroke="currentColor" stroke-width="1.7"/></symbol>
   <symbol id="i-server" viewBox="0 0 24 24"><rect x="4" y="4.5" width="16" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="4" y="13.5" width="16" height="6" rx="1.8" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="8" cy="7.5" r="1" fill="currentColor"/><circle cx="8" cy="16.5" r="1" fill="currentColor"/></symbol>
-  <symbol id="person" viewBox="0 0 200 150"><path d="M38 150c2-30 20-46 46-51l6-2c-9-6-15-17-15-30 0-19 11-33 25-33s25 14 25 33c0 13-6 24-15 30l6 2c26 5 44 21 46 51Z" fill="#1d2c26"/></symbol>
 </svg>
 
 <main id="main">
@@ -123,36 +122,19 @@
       <div class="wrap">
         <h2 id="showcase-title">Everything a call needs, worked out on your device.</h2>
         <p class="section-lede">Blur, captions, noise reduction and who gets in. The parts other apps send to their cloud happen right in your browser.</p>
-        <figure class="demo" aria-label="A Konvene call in progress: the background is blurred on the laptop, a guest asks to join and is let in, and live captions appear.">
-          <div class="demo-win" aria-hidden="true">
-          <div class="demo-bar">
-            <span class="demo-lights"><i></i><i></i><i></i></span>
-            <span class="demo-code"><svg><use href="#i-lock"/></svg>abc-def-ghj</span>
-            <span class="demo-count"><span class="c2">2 in the call</span><span class="c3">3 in the call</span></span>
+        <div class="moments" data-moments>
+          <div class="m-steps" role="tablist" aria-label="Three moments in a call">
+            <button role="tab" id="mt-look" aria-controls="m-view" aria-selected="true"><span class="m-n">01</span><strong>Check how you look</strong><span class="m-d">Blur and effects run on your laptop before anyone sees you.</span><i class="m-bar" aria-hidden="true"></i></button>
+            <button role="tab" id="mt-door" aria-controls="m-view" aria-selected="false" tabindex="-1"><span class="m-n">02</span><strong>Decide who comes in</strong><span class="m-d">A passcode, and guests wait until you let them in.</span><i class="m-bar" aria-hidden="true"></i></button>
+            <button role="tab" id="mt-talk" aria-controls="m-view" aria-selected="false" tabindex="-1"><span class="m-n">03</span><strong>Talk, with captions</strong><span class="m-d">Words appear as you speak, worked out on your device.</span><i class="m-bar" aria-hidden="true"></i></button>
           </div>
-          <div class="demo-stage">
-            <div class="dt dt-main">
-              <div class="room">
-                <span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span>
-              </div>
-              <svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><defs><linearGradient id="pg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2b3d35"/><stop offset=".55" stop-color="#1c2b25"/><stop offset="1" stop-color="#16231e"/></linearGradient></defs><path d="M38 150c2-30 20-46 46-51l6-2c-9-6-15-17-15-30 0-19 11-33 25-33s25 14 25 33c0 13-6 24-15 30l6 2c26 5 44 21 46 51Z" fill="url(#pg)"/></svg>
-              <span class="ring"></span>
-              <span class="dt-name">You</span>
-              <span class="dt-chip"><svg><use href="#i-studio"/></svg>Background blurred on this laptop</span>
-              <p class="d-cap"><b>You</b><span>Captions are made right here, on this laptop.</span></p>
-            </div>
-            <div class="dt dt-b"><span class="av">H</span><span class="dt-name"><svg><use href="#i-mic-off"/></svg>Host</span></div>
-            <div class="dt dt-c"><span class="av">G</span><span class="dt-name">Guest</span></div>
-            <div class="d-knock"><p><b>Guest</b> wants to join</p><span><i class="k-no">Don't let in</i><i class="k-yes">Let in</i></span></div>
-          </div>
-          <div class="demo-dock">
-            <i><svg><use href="#i-mic"/></svg></i><i><svg><use href="#i-cam"/></svg></i><i class="on"><svg><use href="#i-cc"/></svg></i><i><svg><use href="#i-screen"/></svg></i><i class="end"><svg><use href="#i-leave"/></svg></i>
+          <div class="m-view" id="m-view" role="tabpanel" aria-labelledby="mt-look">
+            <img class="m-shot on" data-for="mt-look" src="/images/call-prejoin.webp" width="1720" height="1079" alt="Konvene before a call: the camera preview with the background blurred, a name, and switches for a passcode and asking before letting people in." decoding="async">
+            <img class="m-shot" data-for="mt-door" src="/images/call-knock.webp" width="1720" height="1079" alt="In the call, a card at the top says Guest wants to join, with Don't let in and Let in." loading="lazy" decoding="async">
+            <img class="m-shot" data-for="mt-talk" src="/images/call-captions.webp" width="1720" height="1079" alt="A two-person call with both backgrounds blurred and live captions under the video: Guest asks if everyone can hear, You answer." loading="lazy" decoding="async">
           </div>
         </div>
-          <span class="sc-note n-blur" aria-hidden="true">Blur made on this laptop</span>
-          <span class="sc-note n-door" aria-hidden="true">You decide who comes in</span>
-          <span class="sc-note n-cap" aria-hidden="true">Captions made on your device</span>
-        </figure>
+        <p class="m-note">Real Konvene screens. The two people are 3D sample characters from VRoid standing in for cameras.</p>
       </div>
     </section>
 
@@ -208,16 +190,14 @@
         </div>
         <div class="ex-view">
           <div class="ex-panel" role="tabpanel" id="fp-looks" aria-labelledby="ft-looks">
-            <div class="scene" aria-hidden="true">
-              <div class="dt dt-solo blurred"><div class="room"><span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span></div><svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><use href="#person"/></svg><span class="dt-name">You</span></div>
-              <div class="chips"><span class="on">Blur</span><span>Virtual background</span><span class="on">Studio light</span><span>Touch up</span><span>Colour looks</span></div>
+            <div class="scene">
+              <img class="ex-shot" src="/images/ex-looks.webp" width="1130" height="636" alt="A person in a call with the room behind them softly blurred." loading="lazy" decoding="async">
+              <div class="chips" aria-hidden="true"><span class="on">Blur</span><span>Virtual background</span><span>Studio light</span><span>Touch up</span><span>Colour looks</span></div>
             </div>
           </div>
           <div class="ex-panel" role="tabpanel" id="fp-cc" aria-labelledby="ft-cc" hidden>
-            <div class="scene" aria-hidden="true">
-              <div class="dt dt-solo"><div class="room"><span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span></div><svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><use href="#person"/></svg>
-                <div class="caps"><p><b>Guest</b>Can everyone see the plan on screen?</p><p><b>You</b>Yes, and nothing we say leaves this call.</p></div>
-              </div>
+            <div class="scene">
+              <img class="ex-shot" src="/images/ex-cc.webp" width="1400" height="550" alt="Two people in a call with live captions underneath: Guest asks if everyone can hear, You answer." loading="lazy" decoding="async">
             </div>
           </div>
           <div class="ex-panel" role="tabpanel" id="fp-noise" aria-labelledby="ft-noise" hidden>
@@ -235,14 +215,13 @@
             </div>
           </div>
           <div class="ex-panel" role="tabpanel" id="fp-weak" aria-labelledby="ft-weak" hidden>
-            <div class="scene" aria-hidden="true">
-              <div class="dt dt-solo paused"><span class="av big">G</span><span class="dt-name">Guest</span><span class="bars"><i></i><i></i><i></i></span><p class="paused-note">Video paused to keep the sound clear</p></div>
+            <div class="scene">
+              <img class="ex-shot" src="/images/ex-weak.webp" width="1130" height="636" alt="A guest's tile dimmed with the words Video paused to keep the sound clear, and a low signal indicator." loading="lazy" decoding="async">
             </div>
           </div>
           <div class="ex-panel" role="tabpanel" id="fp-rec" aria-labelledby="ft-rec" hidden>
-            <div class="scene" aria-hidden="true">
-              <div class="rec-pill"><span></span>Guest is recording</div>
-              <div class="dt dt-solo"><div class="room"><span class="r-window"></span><span class="r-shelf"><i></i><i></i><i></i><i></i><i></i></span><span class="r-lamp"></span><span class="r-plant"></span></div><svg class="person" viewBox="0 0 200 150" preserveAspectRatio="xMidYMax meet"><use href="#person"/></svg><span class="dt-name">You</span></div>
+            <div class="scene">
+              <img class="ex-shot" src="/images/ex-rec.webp" width="1400" height="749" alt="A call where a red label at the top says Host is recording, seen by everyone in the call." loading="lazy" decoding="async">
             </div>
           </div>
         </div>
