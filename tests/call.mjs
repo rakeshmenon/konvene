@@ -281,6 +281,26 @@ await a.close(); await b.close();
 // the local handshake only reaches tabs of the same browser, so the guests share it, but they
 // mustn't count as the host (whose calls are remembered in local storage)
 const hctx = await browser.newContext({ viewport: { width: 1360, height: 820 }, permissions: ["camera", "microphone"] });
+// captions: a stand-in for the browser's on-device speech recognition (headless Chromium has no
+// language packs). It refuses to run unless asked to stay on the device.
+await hctx.addInitScript(() => {
+  class FakeSR {
+    start(track) {
+      if (this.processLocally !== true) throw new Error("not on device");
+      if (!track || track.kind !== "audio") throw new Error("no track");
+      this.track = track; FakeSR.live.push(this);
+    }
+    abort() { FakeSR.live = FakeSR.live.filter((r) => r !== this); }
+    stop() { this.abort(); }
+  }
+  FakeSR.prototype.processLocally = false;
+  FakeSR.konveneFake = true;
+  FakeSR.live = [];
+  FakeSR.available = async () => "available";
+  FakeSR.install = async () => true;
+  FakeSR.say = (text, isFinal) => { for (const r of FakeSR.live) if (r.onresult) r.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: text }], { isFinal })] }); return FakeSR.live.length; };
+  window.SpeechRecognition = FakeSR;
+});
 const guest = async () => { const p = await hctx.newPage(); await p.addInitScript(() => localStorage.removeItem("konvene_hosted")); watch(p); return p; };
 const ready = (p) => p.waitForFunction(() => window.__gr && window.__gr.pipe.running, null, { timeout: 30000 });
 const h = await hctx.newPage(); watch(h);
@@ -323,6 +343,22 @@ await shot(j, `${OUT}/09d-asking.png`);
 await h.click(".knock .btn.primary");
 const inNow = await j.waitForFunction(() => window.__gr.inCall && document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 30000 }).then(() => true).catch(() => false);
 ok(inNow && await h.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2 && !document.querySelector(".knock"), null, { timeout: 20000 }).then(() => true).catch(() => false), "Let in brings them into the call");
+
+// live captions: turning them on asks the others' browsers to caption their own voices
+await h.click("#cc-btn");
+ok(await h.evaluate(() => document.querySelector("#cc-btn").getAttribute("aria-pressed") === "true" && !document.querySelector("#captions").hidden), "Captions button turns captions on");
+const listening = await j.waitForFunction(() => window.SpeechRecognition.live.length > 0, null, { timeout: 10000 }).then(() => true).catch(() => false);
+ok(listening && await j.evaluate(() => window.SpeechRecognition.live.every((r) => r.processLocally === true && r.track.kind === "audio")), "the guest's browser captions its own voice, on the device only");
+await j.evaluate(() => window.SpeechRecognition.say("hello from the", false));
+await j.waitForTimeout(400);
+await j.evaluate(() => window.SpeechRecognition.say("hello from the guest", true));
+ok(await h.waitForFunction(() => /Guest.*hello from the guest/.test(document.querySelector("#captions").textContent), null, { timeout: 8000 }).then(() => true).catch(() => false), "the guest's words show as captions for the host");
+await h.evaluate(() => window.SpeechRecognition.say("and this is me", true));
+ok(await h.waitForFunction(() => /You.*and this is me/.test(document.querySelector("#captions").textContent), null, { timeout: 5000 }).then(() => true).catch(() => false), "your own words show too");
+ok(await j.evaluate(() => document.querySelector("#captions").hidden && !/hello/.test(document.querySelector("#captions").textContent)), "captions show only for people who turned them on");
+await shot(h, `${OUT}/10-captions.png`);
+await h.click("#cc-btn");
+ok(await j.waitForFunction(() => window.SpeechRecognition.live.length === 0, null, { timeout: 8000 }).then(() => true).catch(() => false), "turning captions off stops the others' captioning");
 
 // not let in
 const k = await guest();

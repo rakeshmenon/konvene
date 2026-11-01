@@ -5,6 +5,7 @@ import { Quality, TIERS, worse } from "./quality.js";
 import { join, makeRoomCode } from "./net.js";
 import { iceServers } from "./config.js";
 import { CallRecorder } from "./recorder.js";
+import { CAN_LOCAL, findLanguage, install as installCaptions, Transcriber } from "./captions.js";
 import { LOOKS, LIGHTS } from "./fx.js";
 import { BACKGROUNDS } from "./backgrounds.js";
 import { EXPRESSIONS, REACTIONS } from "./stickers.js";
@@ -53,6 +54,8 @@ const state = {
   conn: new Set(), // everyone connected, in the call or not
   knocks: new Map(), // id -> the "wants to join" card
   denied: new Set(),
+  // live captions (captions section below)
+  cc: { on: false, lang: null, can: false, self: null, remote: new Map(), lines: new Map(), sentAt: 0 },
 };
 
 /* ---------------- small helpers ---------------- */
@@ -419,6 +422,7 @@ function hookMic() {
   } catch { /* no audio */ }
   // record what others hear (silent while you're muted), not the raw microphone
   if (state.recorder && state.pipe.sendTrack) { state.recorder.removeAudio("me"); state.recorder.addAudio("me", new MediaStream([state.pipe.sendTrack])); }
+  if (state.cc.self) state.cc.self.setTrack(state.pipe.sendTrack);
 }
 
 // the small arrow next to the mic and camera buttons: a menu of devices, like in Meet
@@ -759,6 +763,7 @@ function joinRoom(code) {
   const rec = room.makeAction("rec");
   const share = room.makeAction("share");
   const chat = room.makeAction("chat");
+  const cc = room.makeAction("cc"); // captions: who wants them, who can make them, and the words
   const linkA = room.makeAction("link"); // "this is how well I reach you"
   const viewA = room.makeAction("view"); // "I show you this many pixels wide"
   // Everything except hello and door goes only to people who are in the call with us,
@@ -769,7 +774,7 @@ function joinRoom(code) {
       if (ids.length) a.send(d, { target: ids });
     },
   });
-  state.actions = { hello, door, status: onlyIn(status), rec: onlyIn(rec), share: onlyIn(share), chat: onlyIn(chat), link: onlyIn(linkA), view: onlyIn(viewA) };
+  state.actions = { hello, door, status: onlyIn(status), rec: onlyIn(rec), share: onlyIn(share), chat: onlyIn(chat), cc: onlyIn(cc), link: onlyIn(linkA), view: onlyIn(viewA) };
   const mine = (fn) => (d, meta) => { if (state.room === room) fn(d || {}, meta); };
   state.quality = new Quality({
     conns: () => (room.peerConns ? room.peerConns() : []).filter(([id]) => state.peers.has(id)),
@@ -859,6 +864,19 @@ function joinRoom(code) {
     if (d.on) { p.shareId = d.id; say(`${p.name || "Someone"} started presenting`); }
     else { p.shareId = null; if (p.screen) { removeScreenTile(peerId); p.screen = null; } }
   });
+  cc.onMessage = mine((d, { peerId }) => {
+    const p = state.peers.get(peerId);
+    if (!p) return;
+    if (d.k === "st") {
+      const turnedOn = !p.ccWant && d.want;
+      p.ccWant = !!d.want; p.ccCan = !!d.can;
+      if (turnedOn) toast(`${p.name || "Someone"} turned on captions`, 3000);
+      ccUpdate();
+    } else if (d.k === "tx" && state.cc.on) {
+      const text = String(d.t || "").slice(0, 400);
+      if (text) showCaption(peerId, text, !!d.f);
+    }
+  });
   chat.onMessage = mine((d, { peerId }) => {
     if (!state.peers.has(peerId)) return;
     const text = String(d.text || "").slice(0, 500);
@@ -931,6 +949,7 @@ function gotStream(stream, peerId, meta) {
     p.video.play().catch(() => toast("Tap anywhere to hear everyone", 5000));
     watchLevel(peerId, stream);
     if (state.recorder) state.recorder.addAudio(peerId, stream);
+    ccUpdate();
   }
   renderTile(peerId);
 }
@@ -951,8 +970,9 @@ function dropPeer(peerId, quiet) {
   if (p && p.screen) removeScreenTile(peerId);
   removeTile(peerId);
   if (state.recorder) { state.recorder.removeAudio(peerId); state.recorder.removeAudio("screen:" + peerId); }
-  if (p) { p.tile = null; p.video = null; p.stream = null; p.screen = null; p.greeted = false; }
+  if (p) { p.tile = null; p.video = null; p.stream = null; p.screen = null; p.greeted = false; p.ccWant = false; }
   state.peers.delete(peerId);
+  dropCaptions(peerId);
   layout();
 }
 
@@ -997,6 +1017,7 @@ function promote(id) {
   greet(p);
   if (p.rec) setRecBy(id, true);
   renderTile(id);
+  ccAnnounce(id);
   setTimeout(sendViews, 1500);
   state.mediaWait.delete(id);
   if (state.selfId < id) sendMedia(id);
@@ -1117,6 +1138,7 @@ function exitRoom() {
   if (state.pip) state.pip.close();
   try { navigator.mediaSession.setActionHandler("enterpictureinpicture", null); } catch { /* not supported */ }
   state.inCall = false;
+  ccUpdate();
   clearTimeout(state.waitTimer);
   forgetCall();
 }
@@ -1205,6 +1227,132 @@ function setRecBy(id, on) {
   $("#rec-badge").hidden = !names.length;
   $("#rec-text").textContent = names.length ? `${names.join(", ")} recording` : "";
   if (on && id !== state.selfId) say(`${nameOf(id)} started recording`);
+}
+
+/* ---------------- live captions (captions.js) ----------------
+   Made on the devices in the call: each person whose browser can do it captions their own voice
+   and sends the words only to the people who turned captions on. Anyone whose browser can't is
+   captioned by the browser of the person who wants captions, from the audio it already gets. */
+
+function ccWanted() { return [...state.peers].filter(([, p]) => p.ccWant).map(([id]) => id); }
+
+function ccAnnounce(target) {
+  if (!state.actions) return;
+  state.actions.cc.send({ k: "st", want: state.cc.on, can: state.cc.can }, target ? { target } : {});
+}
+
+// start or stop each transcriber to match who wants captions and who can make them
+function ccUpdate() {
+  const cc = state.cc;
+  const live = !!(state.room && state.inCall);
+  // my own voice: when I or anyone else wants captions, and this browser can do it on the device
+  const mine = live && cc.can && (cc.on || ccWanted().length > 0);
+  if (mine && !cc.self) {
+    cc.self = new Transcriber({
+      lang: cc.lang.lang,
+      track: state.pipe.sendTrack,
+      onText: (text, final) => {
+        if (cc.on) showCaption(state.selfId, text, final);
+        const now = performance.now();
+        if (!final && now - cc.sentAt < 250) return; // words as they form, a few times a second
+        cc.sentAt = now;
+        const to = ccWanted();
+        if (to.length) state.actions.cc.send({ k: "tx", t: text.slice(-400), f: final }, { target: to });
+      },
+      onFail: (why) => {
+        dlog(`captions stopped: ${why}`);
+        cc.self = null; cc.can = false;
+        ccAnnounce();
+        if (cc.on) toast("Captions stopped working in this browser.", 4000);
+        ccUpdate();
+      },
+    });
+    cc.self.start();
+  } else if (!mine && cc.self) { cc.self.stop(); cc.self = null; }
+  // people whose browsers can't caption themselves: caption the audio we get from them
+  const others = live && cc.on && cc.can;
+  for (const [id, t] of cc.remote) {
+    const p = state.peers.get(id);
+    if (!others || !p || p.ccCan || !p.stream) { t.stop(); cc.remote.delete(id); }
+  }
+  if (others) {
+    for (const [id, p] of state.peers) {
+      const track = p.stream && p.stream.getAudioTracks()[0];
+      if (p.ccCan || !track) continue;
+      const t = cc.remote.get(id);
+      if (t) { t.setTrack(track); continue; }
+      const tr = new Transcriber({
+        lang: cc.lang.lang,
+        track,
+        onText: (text, final) => { if (cc.on) showCaption(id, text, final); },
+        onFail: (why) => { dlog(`captions for ${id} stopped: ${why}`); cc.remote.delete(id); },
+      });
+      cc.remote.set(id, tr);
+      tr.start();
+    }
+  }
+}
+
+async function toggleCaptions() {
+  const cc = state.cc;
+  const btn = $("#cc-btn");
+  if (cc.on) {
+    cc.on = false;
+    btn.setAttribute("aria-pressed", "false");
+    $("#captions", stageEl()).hidden = true;
+    for (const id of [...cc.lines.keys()]) dropCaptions(id);
+    ccAnnounce(); ccUpdate();
+    say("Captions off");
+    return;
+  }
+  cc.on = true;
+  btn.setAttribute("aria-pressed", "true");
+  $("#captions", stageEl()).hidden = false;
+  say("Captions on");
+  if (CAN_LOCAL) {
+    if (!cc.lang) cc.lang = await findLanguage();
+    if (cc.lang && !cc.lang.ready) {
+      toast("Getting captions ready. Your browser downloads a language pack once.", 6000);
+      cc.lang.ready = await installCaptions(cc.lang.lang);
+    }
+    cc.can = !!(cc.lang && cc.lang.ready);
+    if (!cc.can) toast("Captions couldn't be set up on this device. You'll still see captions from people whose browsers can make them.", 6000);
+    else toast("Captions on. They're made on the devices in the call, never on a server.", 4000);
+  } else {
+    toast("This browser can't make captions on your device. You'll see captions from people using Chrome on a computer.", 6000);
+  }
+  if (!cc.on) return; // turned off while setting up
+  ccAnnounce(); ccUpdate();
+}
+
+// a speaker's line at the bottom of the stage: what they finished saying, then what they're saying
+function showCaption(id, text, final) {
+  const box = $("#captions", stageEl());
+  let L = state.cc.lines.get(id);
+  if (!L) {
+    L = { el: el("p", "cap"), text: el("span"), done: "" };
+    L.el.append(el("strong", null, id === state.selfId ? "You" : nameOf(id)), L.text);
+    state.cc.lines.set(id, L);
+  }
+  const all = (L.done + " " + text).trim();
+  if (final) L.done = all.slice(-240);
+  L.text.textContent = all.length > 180 ? "..." + all.slice(-180).replace(/^\S*\s/, "") : all;
+  if (box.lastElementChild !== L.el) box.append(L.el);
+  while (box.children.length > 3) {
+    const first = box.firstElementChild;
+    const old = [...state.cc.lines].find(([, v]) => v.el === first);
+    if (old) dropCaptions(old[0]); else first.remove();
+  }
+  clearTimeout(L.timer);
+  L.timer = setTimeout(() => dropCaptions(id), final ? 6000 : 10000);
+}
+
+function dropCaptions(id) {
+  const cc = state.cc;
+  const L = cc.lines.get(id);
+  if (L) { clearTimeout(L.timer); L.el.remove(); cc.lines.delete(id); }
+  const t = cc.remote.get(id);
+  if (t && !state.peers.has(id)) { t.stop(); cc.remote.delete(id); }
 }
 
 /* ---------------- screen sharing ---------------- */
@@ -1581,6 +1729,7 @@ function showCall() {
   $("#lock-toggle").checked = state.lock;
   hookMic();
   renderTile(state.selfId);
+  ccUpdate();
   closeFx();
   $("#room-chip").focus();
   toast(state.isNewCall ? "You're live. Copy the link to invite people." : "You're in.", 4000);
@@ -1695,11 +1844,15 @@ async function init() {
     const mod = e.metaKey || e.ctrlKey;
     if (mod && !e.shiftKey && !e.altKey && (e.key === "d" || e.key === "D")) { e.preventDefault(); setMic(!state.mic).then(() => { saveAv(); toast(state.mic ? "Microphone on" : "Microphone off", 1500); }); return; }
     if (mod && !e.shiftKey && !e.altKey && (e.key === "e" || e.key === "E")) { e.preventDefault(); setCam(!state.cam).then(() => { saveAv(); toast(state.cam ? "Camera on" : "Camera off", 1500); }); return; }
+    if ((e.key === "c" || e.key === "C") && !mod && !e.altKey && !typing && state.inCall) { e.preventDefault(); toggleCaptions(); return; }
     if (e.code === "Space" && !typing && state.inCall && !state.mic && !e.repeat && !e.target.closest("button")) { e.preventDefault(); spaceTalk = true; setMic(true); }
   });
   addEventListener("keyup", (e) => { if (e.code === "Space" && spaceTalk) { spaceTalk = false; setMic(false); } });
   addEventListener("blur", () => { if (spaceTalk) { spaceTalk = false; setMic(false); } });
   $("#share-btn").addEventListener("click", toggleShare);
+  $("#cc-btn").addEventListener("click", toggleCaptions);
+  // can this browser caption your voice on the device right now? (checks only, never downloads)
+  if (CAN_LOCAL) findLanguage().then((l) => { if (!state.cc.lang) state.cc.lang = l; state.cc.can = !!(l && l.ready); if (state.inCall) { ccAnnounce(); ccUpdate(); } });
   $("#hand-btn").addEventListener("click", () => setHand(!state.hand));
   $("#rec-btn").addEventListener("click", toggleRecording);
   $("#save-rec").addEventListener("click", saveRecording);

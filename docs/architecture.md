@@ -25,6 +25,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `net.js` | Rooms: Trystero (handshake over public Nostr relays) or `?local=1` (handshake over a BroadcastChannel, for testing) |
 | `recorder.js` | Records the call grid and every voice into one file, in the browser |
 | `quality.js` | Weak connections: a quality tier per person from WebRTC stats, audio-only fallback, encoder settings sized to each viewer's tile |
+| `captions.js` | Live captions with the Web Speech API on the device only (`processLocally`), restricted to desktop Google Chrome 139+ (other Chromium builds can crash when asked); a `Transcriber` per audio track that restarts itself |
 | `pip.js` | Picture-in-picture: moves the call's stage into a Document Picture-in-Picture window (auto on tab switch in Chrome 120+ via the media session `enterpictureinpicture` action), with a video PiP fallback |
 | `config.js` | Deployment settings built in from `KONVENE_*` variables, and fetching relay passwords |
 
@@ -36,6 +37,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 - The outgoing video is a canvas, so switching cameras or effects needs nothing from the other side. Switching microphones swaps the audio track with `replaceTrack`.
 - Peers receive a clone of the microphone track. Muting disables the clone, so the original still shows the "you're talking while muted" reminder.
 - Who can get in. A passcode is Trystero's room `password`: the handshake is encrypted with it, and a mismatch reaches `onJoinError` ("incorrect room password"). Only the browser that fails to decrypt hears about it, so a joiner with the wrong passcode is told when its side fails, and otherwise sees "nobody has answered yet". The waiting room is a protocol between the browsers (`hello` and `door` actions in `main.js`): each says whether it is in the call and whether the call asks first. Connected people who aren't in the call with you sit in `state.pending`; every action except `hello` and `door` is sent only to `state.peers`, and video starts only when both sides are in. The person who started the call (remembered in local storage) is in straight away. Someone who walked in without asking, after the call started asking, is sent back to knock.
+- Captions (`cc` action): each browser says whether it wants captions and whether it can make them. A browser that can captions its own outgoing voice (the muted-aware send track) whenever anyone wants captions, and sends the text only to them. For people who can't, the viewer's browser runs a transcriber on their incoming audio track.
 - Quality is set per person every 2 seconds (`quality.js`): a tier from that connection's stats (good, weak: 720p, poor: 360p at 15 fps, bad: audio only), the size that person shows you at, and a base bitrate of 2.5 Mbps with one other person down to 1 Mbps with five. It steps down after 4 s of worse numbers and up one step after 10 s of better ones (longer if it keeps falling back).
 
 ## Background cutout
