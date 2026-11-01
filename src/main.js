@@ -31,6 +31,7 @@ const state = {
   me: null,
   peers: new Map(), // id -> { id, name, mic, cam, hand, stream, video, tile, analyser, screen: { id, stream, video, tile } }
   mic: false, // camera and microphone are off until you turn them on
+  quiet: false, // sound off on this device: no microphone, others' audio muted (a second device in the same room)
   cam: false,
   hand: false,
   screen: null, // our shared screen stream
@@ -498,6 +499,18 @@ async function openDeviceMenu(btn) {
       menu.append(item);
     }
   }
+  if (btn.dataset.menu === "mic") {
+    menu.append(el("h3", null, "This device"));
+    const item = el("button");
+    item.type = "button";
+    item.setAttribute("role", "menuitemcheckbox");
+    item.setAttribute("aria-checked", String(state.quiet));
+    item.dataset.quiet = "";
+    item.append(icon("i-check"), el("span", null, "Sound off (another device in this room)"));
+    item.title = "No microphone and no speakers on this device, so a second device in the same room doesn't echo.";
+    item.addEventListener("click", () => { closeDeviceMenu(); setQuiet(!state.quiet); toast(state.quiet ? "Sound is off on this device" : "Sound is back on", 2500); });
+    menu.append(item);
+  }
   menu.dataset.for = btn.dataset.menu;
   menu.hidden = false;
   btn.setAttribute("aria-expanded", "true");
@@ -548,7 +561,10 @@ function makeTile(key, { screen = false, me = false } = {}) {
   const muted = el("span", "muted-icon");
   muted.append(icon("i-mic-off"));
   muted.setAttribute("aria-label", "Microphone off");
-  label.append(muted, el("span"));
+  const quiet = el("span", "quiet-icon");
+  quiet.append(icon("i-sound-off"));
+  quiet.setAttribute("aria-label", "Sound off on this device");
+  label.append(muted, quiet, el("span"));
   const hand = el("span", "hand-badge");
   hand.append(icon("i-hand"), el("span", null, "Hand raised"));
   const actions = el("div", "tile-actions");
@@ -588,6 +604,7 @@ function renderTile(id) {
   else if (!$(".tile-media > *", li)) setMedia(li, placeholder(p.name));
   $(".tile-name span:last-child", li).textContent = (p.name || "Guest") + (me ? " (you)" : "");
   li.classList.toggle("mic-off", p.mic === false);
+  li.classList.toggle("quiet", me ? state.quiet : !!p.quiet);
   li.classList.toggle("hand", !!p.hand);
   if (!me) renderSignal(id);
   layout();
@@ -743,13 +760,14 @@ function mutedReminder() {
 
 function newVideo(muted) {
   const v = document.createElement("video");
-  v.autoplay = true; v.playsInline = true; v.muted = !!muted;
+  v.autoplay = true; v.playsInline = true; v.muted = !!muted || state.quiet;
+  if (!muted) v.dataset.remote = "1"; // someone else's sound: silent while this device's sound is off
   if (!muted && state.sinkId && v.setSinkId) v.setSinkId(state.sinkId).catch(() => {});
   return v;
 }
 
 function myStatus() {
-  return { name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null };
+  return { name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, quiet: state.quiet, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null };
 }
 
 function joinRoom(code) {
@@ -801,7 +819,7 @@ function joinRoom(code) {
     dlog(`hello from ${peerId}${d.in ? "" : " (asking to join)"}`);
     const p = state.peers.get(peerId) || state.pending.get(peerId) || { id: peerId };
     if (d.name != null) p.name = String(d.name || "Guest").slice(0, 20);
-    if ("mic" in d) { p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.rec = !!d.rec; }
+    if ("mic" in d) { p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.quiet = !!d.quiet; p.rec = !!d.rec; }
     if (d.share) p.shareId = d.share;
     p.in = !!d.in; p.how = String(d.how || ""); p.age = Number(d.age) || 0;
     // the waiting room is the call's setting: learn it from the people in it
@@ -855,7 +873,7 @@ function joinRoom(code) {
     const p = state.peers.get(peerId);
     if (!p) return;
     const raised = !p.hand && d.hand;
-    p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away;
+    p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.quiet = !!d.quiet;
     if (raised) { toast(`${p.name || "Someone"} raised their hand`); say(`${p.name || "Someone"} raised their hand`); }
     renderTile(peerId);
   });
@@ -907,7 +925,7 @@ function joinRoom(code) {
     if (w && !state.peers.has(peerId)) { (w.early || (w.early = [])).push([stream, meta]); return; }
     gotStream(stream, peerId, meta);
   };
-  state.broadcastStatus = () => state.actions && state.actions.status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away });
+  state.broadcastStatus = () => state.actions && state.actions.status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, quiet: state.quiet });
 }
 
 // Adding video makes the connection renegotiate. If both people do it at the same moment
@@ -1496,7 +1514,26 @@ function renderPeople() {
 
 /* ---------------- controls ---------------- */
 
+// Two devices in one room echo: each one's microphone picks up the other's speakers, which
+// browsers can't cancel (echo cancellation only knows its own device's sound). The fix is the
+// same as Meet's companion mode: one device in the room keeps the sound, the others turn it off.
+const QUIET_KEY = "konvene_quiet";
+function setQuiet(on) {
+  state.quiet = on;
+  try { if (on) sessionStorage.setItem(QUIET_KEY, "1"); else sessionStorage.removeItem(QUIET_KEY); } catch { /* private */ }
+  document.body.classList.toggle("quiet", on);
+  if ($("#quiet")) $("#quiet").checked = on;
+  if (on && state.mic) setMic(false);
+  for (const v of $$("video[data-remote]", stageEl())) v.muted = on;
+  $$('[data-toggle="mic"]').forEach((b) => { b.title = on ? "Sound is off on this device" : "Microphone"; });
+  if (state.inCall) { renderTile(state.selfId); state.broadcastStatus(); }
+}
+
 async function setMic(on) {
+  if (on && state.quiet) {
+    toast("Sound is off on this device. To use its microphone, turn sound back on in the microphone menu.", 5000);
+    on = false;
+  }
   if (on && !(await ensureMic())) {
     showHint(state.micError === "NotAllowedError" ? "Microphone blocked. Allow it in the address bar (the camera icon), then try again." : "No microphone found. Plug one in and try again.");
     on = false;
@@ -1615,7 +1652,7 @@ function forgetCall() { try { sessionStorage.removeItem(SESSION_KEY); } catch { 
 // three screens: home (/), the pre-join check (/abc-def-ghj) and the call itself
 const AV_KEY = "konvene_av";
 function loadAv() { try { return JSON.parse(localStorage.getItem(AV_KEY) || "{}"); } catch { return {}; } }
-function saveAv() { try { localStorage.setItem(AV_KEY, JSON.stringify({ mic: state.mic, cam: state.cam })); } catch { /* private */ } }
+function saveAv() { if (state.quiet) return; try { localStorage.setItem(AV_KEY, JSON.stringify({ mic: state.mic, cam: state.cam })); } catch { /* private */ } }
 function screen(name) {
   document.body.dataset.screen = name;
   // the home page is night green; the pre-join page and the call are light
@@ -1676,7 +1713,7 @@ function showLobby(code, inv = null) {
 async function restoreAv() {
   const av = loadAv();
   if (av.cam && !state.cam) await setCam(true);
-  if (av.mic && !state.mic) await setMic(true);
+  if (av.mic && !state.mic && !state.quiet) await setMic(true);
 }
 function route(inv = null) {
   const code = codeFromHash();
@@ -1709,6 +1746,7 @@ function syncSec() {
 function leaveCall() {
   if (state.screen) stopShare();
   forgetCall();
+  try { sessionStorage.removeItem(QUIET_KEY); } catch { /* private */ }
   try { navigator.mediaSession.setActionHandler("enterpictureinpicture", null); } catch { /* not supported */ }
   if (state.pip) state.pip.close();
   if (state.room) state.room.leave();
@@ -1784,6 +1822,9 @@ async function init() {
     route();
   });
   // a new call: passcode and ask first (remembered for your next new call)
+  $("#quiet").addEventListener("change", (e) => setQuiet(e.target.checked));
+  // a refresh during a call keeps this device's sound off
+  try { if (sessionStorage.getItem(QUIET_KEY)) setQuiet(true); } catch { /* private */ }
   for (const id of ["#sec-pass", "#sec-wait"]) $(id).addEventListener("change", () => { syncSec(); saveSec(); if (id === "#sec-pass" && $("#sec-pass").checked) $("#pass").select(); });
   $("#pass").addEventListener("input", () => { syncSec(); lobbyNote(""); });
   $("#wait-cancel").addEventListener("click", () => { const c = state.code; exitRoom(); showLobby(c); });
@@ -1867,10 +1908,10 @@ async function init() {
   addEventListener("keydown", (e) => {
     const typing = e.target.closest && e.target.closest("input, textarea, select, [contenteditable]");
     const mod = e.metaKey || e.ctrlKey;
-    if (mod && !e.shiftKey && !e.altKey && (e.key === "d" || e.key === "D")) { e.preventDefault(); setMic(!state.mic).then(() => { saveAv(); toast(state.mic ? "Microphone on" : "Microphone off", 1500); }); return; }
+    if (mod && !e.shiftKey && !e.altKey && (e.key === "d" || e.key === "D")) { e.preventDefault(); if (state.quiet) { setMic(true); return; } setMic(!state.mic).then(() => { saveAv(); toast(state.mic ? "Microphone on" : "Microphone off", 1500); }); return; }
     if (mod && !e.shiftKey && !e.altKey && (e.key === "e" || e.key === "E")) { e.preventDefault(); setCam(!state.cam).then(() => { saveAv(); toast(state.cam ? "Camera on" : "Camera off", 1500); }); return; }
     if ((e.key === "c" || e.key === "C") && !mod && !e.altKey && !typing && state.inCall) { e.preventDefault(); toggleCaptions(); return; }
-    if (e.code === "Space" && !typing && state.inCall && !state.mic && !e.repeat && !e.target.closest("button")) { e.preventDefault(); spaceTalk = true; setMic(true); }
+    if (e.code === "Space" && !typing && state.inCall && !state.mic && !state.quiet && !e.repeat && !e.target.closest("button")) { e.preventDefault(); spaceTalk = true; setMic(true); }
   });
   addEventListener("keyup", (e) => { if (e.code === "Space" && spaceTalk) { spaceTalk = false; setMic(false); } });
   addEventListener("blur", () => { if (spaceTalk) { spaceTalk = false; setMic(false); } });

@@ -4,6 +4,7 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Added: join without sound, for a second device in a room that is already in the call (no microphone, others muted), so the room doesn't echo. On the pre-join page and in the microphone menu; others see a "sound off" mark on that person.
 - Changed: the public demo now lives at https://konvene.app (Cloudflare Pages); the old Netlify address redirects there.
 - Added: `KONVENE_MOVED_TO` sends every visit to a copy that has moved, keeping the path.
 - Added: Cloudflare Pages support: `functions/api/turn.js` for relay passwords, and security headers moved to `public/_headers` (read by both Netlify and Cloudflare). Cloudflare builds skip `404.html` so call links answer 200.

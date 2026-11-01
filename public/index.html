@@ -49,6 +49,7 @@
   <symbol id="i-cc" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M10.6 10.2a2.3 2.3 0 1 0 0 3.6M17.1 10.2a2.3 2.3 0 1 0 0 3.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></symbol>
   <symbol id="i-pip" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.7"/><rect x="12" y="11.5" width="7" height="5.5" rx="1.2" fill="currentColor"/></symbol>
   <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="i-sound-off" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m16 9.5 5 5m0-5-5 5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
   <symbol id="i-speaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4v-5Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></symbol>
   <symbol id="i-up" viewBox="0 0 24 24"><path d="m7 14 5-5 5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
@@ -318,6 +319,7 @@
             <label class="switch"><input type="checkbox" id="sec-pass" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Passcode</strong><small>People need it to join. The link you copy includes it.</small></span></label>
             <label class="switch"><input type="checkbox" id="sec-wait" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Ask before letting people in</strong><small>Someone in the call lets each new person in.</small></span></label>
           </fieldset>
+          <label class="switch quiet-switch"><input type="checkbox" id="quiet" role="switch"><span class="track" aria-hidden="true"></span><span><strong>Join without sound</strong><small>For a second device in a room that's already in the call: no microphone and no speakers here, so nobody hears an echo.</small></span></label>
           <div class="pass-row" id="pass-row" hidden>
             <label for="pass">Passcode</label>
             <input id="pass" name="call-passcode" maxlength="40" autocomplete="off" autocapitalize="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="The passcode you were given">

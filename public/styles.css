@@ -153,6 +153,12 @@ select:disabled { color: var(--ink-3); cursor: default; }
 .muted-icon { display: none; color: #ff8b8e; }
 .muted-icon svg { width: 15px; height: 15px; }
 .tile.mic-off .muted-icon { display: inline-flex; }
+/* sound off on that device (a second device in a room already in the call) */
+.quiet-icon { display: none; color: #ffd27a; }
+.quiet-icon svg { width: 15px; height: 15px; }
+.tile.quiet .quiet-icon { display: inline-flex; }
+.tile.quiet .muted-icon { display: none; }
+body.quiet [data-toggle="mic"] { opacity: .45; }
 .hand-badge { position: absolute; left: .6rem; top: .6rem; z-index: 2; display: none; align-items: center; gap: .3rem; padding: .25rem .55rem .25rem .4rem; border-radius: 999px; background: var(--amber); color: #1d1500; font-size: .78rem; font-weight: 600; }
 .hand-badge svg { width: 16px; height: 16px; }
 .tile.hand .hand-badge { display: inline-flex; }
@@ -466,7 +472,9 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 .lobby-sec legend { float: left; width: 100%; padding: 0; margin-bottom: .1rem; font-size: .85rem; font-weight: 600; color: var(--ink); }
 .lobby-sec .switch { align-items: flex-start; font-weight: 400; font-size: .92rem; }
 .lobby-sec .switch .track { margin-top: 2px; }
-.lobby-sec .switch small, .door-box .switch small { display: block; color: var(--ink-3); font-size: .8rem; margin-top: .1rem; }
+.lobby-form .quiet-switch { align-items: flex-start; font-weight: 400; font-size: .92rem; color: var(--ink); margin-top: .6rem; padding: .9rem 1rem; border-radius: 12px; background: var(--surface-2); }
+.quiet-switch .track { margin-top: 2px; }
+.quiet-switch small, .lobby-sec .switch small, .door-box .switch small { display: block; color: var(--ink-3); font-size: .8rem; margin-top: .1rem; }
 .pass-row { display: grid; gap: .5rem; margin-top: .4rem; }
 .pass-row input { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .04em; }
 .lobby-note { margin: .3rem 0 0; padding: .6rem .8rem; border-radius: 10px; background: rgba(229, 72, 77, .1); color: #a1262b; font-size: .9rem; line-height: 1.45; }

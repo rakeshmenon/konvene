@@ -373,6 +373,16 @@ await shot(h, `${OUT}/10-captions.png`);
 await h.click("#cc-btn");
 ok(await j.waitForFunction(() => window.SpeechRecognition.live.length === 0, null, { timeout: 8000 }).then(() => true).catch(() => false), "turning captions off stops the others' captioning");
 
+// a second device in the same room: its sound goes off so the room doesn't echo
+const quietMenu = async () => { await j.click('#call [data-menu="mic"]'); await j.click("#dev-menu [data-quiet]"); };
+await quietMenu();
+ok(await j.evaluate(() => { const v = [...document.querySelectorAll("video[data-remote]")]; return window.__gr.quiet && !window.__gr.mic && v.length > 0 && v.every((x) => x.muted); }), "sound off on this device: microphone off and the others muted");
+await j.click('#call [data-toggle="mic"]');
+ok(await j.evaluate(() => !window.__gr.mic), "the microphone stays off while this device's sound is off");
+ok(await h.waitForFunction(() => document.querySelector("#tiles .tile:not(.me)").classList.contains("quiet"), null, { timeout: 8000 }).then(() => true).catch(() => false), "the others see that device's sound is off");
+await quietMenu();
+ok(await j.evaluate(() => !window.__gr.quiet && [...document.querySelectorAll("video[data-remote]")].every((x) => !x.muted)), "turning sound back on unmutes the others");
+
 // not let in
 const k = await guest();
 await k.goto(invite); await ready(k);
