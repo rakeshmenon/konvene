@@ -10,3 +10,6 @@ shots/
 *.y4m
 .DS_Store
 CLAUDE.local.md
+
+# Cloudflare local dev state (wrangler pages dev)
+.wrangler/
