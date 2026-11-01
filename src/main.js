@@ -1076,14 +1076,56 @@ function rememberCall(code) { try { sessionStorage.setItem(SESSION_KEY, JSON.str
 function rememberedCall() { try { return JSON.parse(sessionStorage.getItem(SESSION_KEY) || "null"); } catch { return null; } }
 function forgetCall() { try { sessionStorage.removeItem(SESSION_KEY); } catch { /* private */ } }
 
-function showInvite(code) {
-  $("#invite-note").hidden = false;
-  $("#invite-code").textContent = code;
-  $("#join-btn").textContent = "Join call";
-  $("#pj-title").textContent = "Ready to join?";
-  $("#pj-lede").textContent = "You've been invited to a private call. Check how you look and sound, add your name, and join.";
-  $("#code-form").hidden = true;
-  $("#name").focus();
+// three screens: home (/), the pre-join check (/abc-def-ghj) and the call itself
+const AV_KEY = "konvene_av";
+function loadAv() { try { return JSON.parse(localStorage.getItem(AV_KEY) || "{}"); } catch { return {}; } }
+function saveAv() { try { localStorage.setItem(AV_KEY, JSON.stringify({ mic: state.mic, cam: state.cam })); } catch { /* private */ } }
+function screen(name) {
+  document.body.dataset.screen = name;
+  $("#prejoin").hidden = name !== "home";
+  $("#lobby").hidden = name !== "lobby";
+  $("#call").hidden = name !== "call";
+  closeDeviceMenu();
+}
+function showHome() {
+  closeFx();
+  for (const v of $$("#lobby-preview canvas")) v.remove();
+  screen("home");
+  // the home page has no camera or microphone: turn off anything the pre-join page opened
+  if (state.pipe.running) { if (state.cam) setCam(false); if (state.mic) setMic(false); }
+}
+// before joining: a big preview, mic and camera with device choices, effects and your name.
+// Your last choices (devices, on or off, effects, name) come back from local storage.
+function showLobby(code) {
+  state.code = code;
+  const isNew = state.newCode === code;
+  $("#lobby-title").textContent = isNew ? "Ready to start?" : "Ready to join?";
+  $("#lobby-sub").textContent = isNew
+    ? "Check how you look and sound. Once you're in, share the link and people can join."
+    : "You've been invited to a private call. Check how you look and sound. Only you can see this until you join.";
+  $("#join-btn").textContent = isNew ? "Start call" : "Join now";
+  $("#lobby-code").textContent = code;
+  if (!$("#lobby-preview canvas")) $("#lobby-preview").prepend(makeLocalView(true));
+  screen("lobby");
+  showHint("");
+  if (state.pipe.running) restoreAv();
+  const n = $("#name");
+  if (!n.value) n.focus({ preventScroll: true }); else $("#join-btn").focus({ preventScroll: true });
+}
+async function restoreAv() {
+  const av = loadAv();
+  if (av.cam && !state.cam) await setCam(true);
+  if (av.mic && !state.mic) await setMic(true);
+}
+function route() {
+  const code = codeFromHash();
+  if (code) showLobby(code); else showHome();
+}
+function startCall() {
+  const code = makeRoomCode();
+  state.newCode = code;
+  history.pushState(null, "", "/" + code + location.search);
+  showLobby(code);
 }
 
 // accepts "abc-def-ghj" or a full invite link
@@ -1094,17 +1136,16 @@ function parseCode(text) {
 
 async function enterCall() {
   state.audio.resume();
-  const isNew = !codeFromHash();
   const code = codeFromHash() || makeRoomCode();
+  const isNew = state.newCode === code;
   goTo(code);
   rememberCall(code);
   // relay servers for strict networks (asked for at page load; don't wait long for them)
   if (!LOCAL && !state.turn) state.turn = await Promise.race([state.turnReady, new Promise((r) => setTimeout(() => r([]), 2500))]);
   joinRoom(code);
   state.inCall = true;
-  document.body.dataset.screen = "call";
-  $("#prejoin").hidden = true;
-  $("#call").hidden = false;
+  for (const v of $$("#lobby-preview canvas")) v.remove();
+  screen("call");
   $("#room-code").textContent = code;
   hookMic();
   renderTile(state.selfId);
@@ -1121,20 +1162,29 @@ async function init() {
   state.pipe.name = $("#name").value;
   const code = codeFromHash();
   if (code && location.hash) goTo(code); // tidy an old #abc-def-ghj link into /abc-def-ghj
-  if (code) showInvite(code);
-  $("#cta-start").addEventListener("click", (e) => { e.preventDefault(); scrollTo({ top: 0, behavior: "smooth" }); setTimeout(() => $("#name").focus({ preventScroll: true }), 400); });
+  const again = rememberedCall();
+  const rejoin = !!(again && code && again.code === code && again.name);
+  if (!rejoin) route();
+  $("#start-btn").addEventListener("click", startCall);
+  $("#cta-start").addEventListener("click", startCall);
   $("#code-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const c = parseCode($("#code-input").value);
     if (!c) { toast("That doesn't look like a call code. It looks like abc-def-ghj."); return; }
-    goTo(c);
-    showInvite(c);
+    history.pushState(null, "", "/" + c + location.search);
+    showLobby(c);
+  });
+  // Back goes from the pre-join page to home. During a call it does nothing (Leave does that).
+  addEventListener("popstate", () => { if (state.inCall) history.pushState(null, "", "/" + state.code + location.search); else route(); });
+  $("#lobby-copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(link(state.code)); toast("Call link copied"); } catch { toast(link(state.code), 8000); }
   });
 
   initPanel();
   buildReactions();
   buildSignatures();
   buildDevicePickers($("#call-devices"));
+  buildDevicePickers($("#lobby-devices"));
   heroWord();
 
   state.turnReady = LOCAL ? Promise.resolve([]) : iceServers();
@@ -1142,17 +1192,18 @@ async function init() {
   setMic(false); setCam(false);
   if (state.devices.speaker && canPickSpeaker) state.sinkId = state.devices.speaker;
   refreshDevices();
+  if (!rejoin && document.body.dataset.screen === "lobby") restoreAv();
   // refreshing during a call puts you straight back in it (the microphone is still required)
-  const again = rememberedCall();
-  if (again && code && again.code === code && again.name) {
+  if (rejoin) {
     state.name = again.name; state.pipe.name = again.name; $("#name").value = again.name;
     setTimeout(async () => { if (await ensureMic()) enterCall(); else forgetCall(); }, 0);
   }
   if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener("devicechange", refreshDevices);
   document.addEventListener("change", (e) => { const s = e.target.closest("select[data-kind]"); if (s && s.value) switchDevice(s.dataset.kind, s.value); });
 
-  $$('[data-toggle="mic"]').forEach((b) => b.addEventListener("click", () => setMic(!state.mic)));
-  $$('[data-toggle="cam"]').forEach((b) => b.addEventListener("click", () => setCam(!state.cam)));
+  // explicit choices are remembered for next time (holding Space to talk is not)
+  $$('[data-toggle="mic"]').forEach((b) => b.addEventListener("click", () => setMic(!state.mic).then(saveAv)));
+  $$('[data-toggle="cam"]').forEach((b) => b.addEventListener("click", () => setCam(!state.cam).then(saveAv)));
   $("#name").addEventListener("input", (e) => { state.pipe.name = e.target.value; });
   $("#join-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1165,7 +1216,7 @@ async function init() {
     btn.disabled = false;
     if (!ok) {
       showHint(state.micError === "NotAllowedError"
-        ? "Konvene needs your microphone to join. Allow it in the address bar (the camera icon), then press the button again. You'll still join muted."
+        ? "Konvene needs your microphone to join. Allow it in the address bar (the camera icon), then press the button again. You can stay muted."
         : "Konvene needs a microphone to join, and none was found. Plug one in and try again.");
       return;
     }
@@ -1184,8 +1235,8 @@ async function init() {
   addEventListener("keydown", (e) => {
     const typing = e.target.closest && e.target.closest("input, textarea, select, [contenteditable]");
     const mod = e.metaKey || e.ctrlKey;
-    if (mod && !e.shiftKey && !e.altKey && (e.key === "d" || e.key === "D")) { e.preventDefault(); setMic(!state.mic).then(() => toast(state.mic ? "Microphone on" : "Microphone off", 1500)); return; }
-    if (mod && !e.shiftKey && !e.altKey && (e.key === "e" || e.key === "E")) { e.preventDefault(); setCam(!state.cam).then(() => toast(state.cam ? "Camera on" : "Camera off", 1500)); return; }
+    if (mod && !e.shiftKey && !e.altKey && (e.key === "d" || e.key === "D")) { e.preventDefault(); setMic(!state.mic).then(() => { saveAv(); toast(state.mic ? "Microphone on" : "Microphone off", 1500); }); return; }
+    if (mod && !e.shiftKey && !e.altKey && (e.key === "e" || e.key === "E")) { e.preventDefault(); setCam(!state.cam).then(() => { saveAv(); toast(state.cam ? "Camera on" : "Camera off", 1500); }); return; }
     if (e.code === "Space" && !typing && state.inCall && !state.mic && !e.repeat && !e.target.closest("button")) { e.preventDefault(); spaceTalk = true; setMic(true); }
   });
   addEventListener("keyup", (e) => { if (e.code === "Space" && spaceTalk) { spaceTalk = false; setMic(false); } });
