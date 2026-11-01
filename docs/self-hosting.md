@@ -16,7 +16,13 @@ Settings: **Site configuration > Environment variables**, then **Deploys > Trigg
 
 Or import your fork in Vercel. `vercel.json` sets the build, the output folder and the rewrites; `api/turn.js` becomes the `/api/turn` function. Settings: **Project > Settings > Environment Variables**, then redeploy.
 
-## 3. Any static host
+## 3. Cloudflare Pages
+
+In Cloudflare choose **Workers & Pages > Create > Pages > Import an existing Git repository**, pick your fork, then set the build command to `npm run build`, the output directory to `dist`, and the variable `NODE_VERSION` to `22`. `functions/api/turn.js` becomes the `/api/turn` function, and `public/_headers` sets the same security headers as on Netlify. Settings: **Settings > Variables and Secrets**, then retry the latest deployment.
+
+A custom domain on its root (example.com rather than calls.example.com) has to be a Cloudflare zone: add the domain to Cloudflare and point its nameservers there.
+
+## 4. Any static host
 
 ```sh
 npm ci
@@ -27,7 +33,6 @@ Upload `dist/`. Configure one rewrite: unknown paths go to `/index.html`, becaus
 
 | Host | Rewrite |
 |---|---|
-| Cloudflare Pages | Included (`_redirects`). Build `npm run build`, output `dist`. |
 | nginx | `try_files $uri $uri/ /index.html;` (full config in `deploy/nginx.conf`) |
 | Apache | `FallbackResource /index.html` |
 | Caddy | `try_files {path} /index.html` |
@@ -35,7 +40,7 @@ Upload `dist/`. Configure one rewrite: unknown paths go to `/index.html`, becaus
 
 The site must be served over HTTPS (browsers only allow cameras on HTTPS and `localhost`). Serve `.wasm` files as `application/wasm`.
 
-## 4. Docker
+## 5. Docker
 
 ```sh
 docker build -t konvene --build-arg KONVENE_APP_ID=my-calls .

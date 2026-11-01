@@ -13,20 +13,4 @@
 
 # Redirects (call links, /api/turn) live in public/_redirects.
 
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "no-referrer"
-    Permissions-Policy = "camera=(self), microphone=(self), display-capture=(self), geolocation=(), interest-cohort=()"
-    Strict-Transport-Security = "max-age=31536000"
-
-[[headers]]
-  for = "/models/*"
-  [headers.values]
-    Cache-Control = "public, max-age=2592000"
-
-[[headers]]
-  for = "/vendor/*"
-  [headers.values]
-    Cache-Control = "public, max-age=2592000"
+# Response headers (security and caching) live in public/_headers, shared with Cloudflare Pages.

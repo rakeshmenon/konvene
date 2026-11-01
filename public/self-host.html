@@ -44,7 +44,7 @@ npm run dev</code></pre>
   <h2 id="anywhere">Deploy to any web host</h2>
   <p><code>npm run build</code> makes a <code>dist/</code> folder. Upload that folder to any static host. The only rule: <strong>send unknown paths to <code>/index.html</code></strong>, because call links look like <code>/abc-def-ghj</code>.</p>
   <ul>
-    <li><strong>Cloudflare Pages:</strong> works as is (the <code>_redirects</code> file is included). Build command <code>npm run build</code>, output <code>dist</code>.</li>
+    <li><strong>Cloudflare Pages:</strong> import the repository, build command <code>npm run build</code>, output <code>dist</code>, variable <code>NODE_VERSION</code> set to <code>22</code>. The relay function and security headers are included.</li>
     <li><strong>Nginx:</strong> <code>try_files $uri /index.html;</code></li>
     <li><strong>Apache:</strong> <code>FallbackResource /index.html</code></li>
     <li><strong>Caddy:</strong> <code>try_files {path} /index.html</code></li>

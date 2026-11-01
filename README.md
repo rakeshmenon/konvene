@@ -86,7 +86,7 @@ Open <http://localhost:8790>. To try a call on one computer, open <http://localh
 
 ### Anywhere else
 
-`npm run build` writes a static site to `dist/`. Upload it to any web host and send unknown paths to `/index.html` (call links are paths). Ready-made setups: Cloudflare Pages (`_redirects` included), nginx (`deploy/nginx.conf`), Docker (`docker build -t konvene . && docker run -p 8080:80 konvene`). Full guide: [docs/self-hosting.md](docs/self-hosting.md).
+`npm run build` writes a static site to `dist/`. Upload it to any web host and send unknown paths to `/index.html` (call links are paths). Ready-made setups: Netlify, Vercel and Cloudflare Pages (functions and headers included), nginx (`deploy/nginx.conf`), Docker (`docker build -t konvene . && docker run -p 8080:80 konvene`). Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 
 ## Settings and customising
 

@@ -1,0 +1,12 @@
+# Netlify and Cloudflare Pages both read this file (Vercel: vercel.json, nginx: deploy/nginx.conf).
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+  Permissions-Policy: camera=(self), microphone=(self), display-capture=(self), geolocation=(), interest-cohort=()
+  Strict-Transport-Security: max-age=31536000
+
+/models/*
+  Cache-Control: public, max-age=2592000
+
+/vendor/*
+  Cache-Control: public, max-age=2592000

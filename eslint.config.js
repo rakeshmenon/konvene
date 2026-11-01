@@ -10,7 +10,7 @@ export default [
     languageOptions: { ecmaVersion: 2023, sourceType: "module", globals: { ...globals.browser, __KONVENE__: "readonly" } },
   },
   {
-    files: ["*.js", "*.mjs", "scripts/**", "server/**", "netlify/**", "api/**", "tests/**"],
+    files: ["*.js", "*.mjs", "scripts/**", "server/**", "netlify/**", "api/**", "functions/**", "tests/**"],
     languageOptions: { ecmaVersion: 2023, sourceType: "module", globals: { ...globals.node, ...globals.browser } },
   },
   {
