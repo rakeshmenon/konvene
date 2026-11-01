@@ -9,7 +9,7 @@
 Free, private video calls in the browser. Peer to peer, no account, no server in the middle,
 and every effect, caption and bit of noise reduction worked out on your own device.
 
-[Live demo](https://konvene-calls.netlify.app) · [Run your own](#run-your-own) · [Customise it](docs/customising.md) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[Live demo](https://konvene.app) · [Run your own](#run-your-own) · [Customise it](docs/customising.md) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
 
 [![CI](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml/badge.svg)](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/rakeshmenon/konvene/actions/workflows/codeql.yml/badge.svg)](https://github.com/rakeshmenon/konvene/actions/workflows/codeql.yml)

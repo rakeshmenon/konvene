@@ -14,3 +14,11 @@
 # Redirects (call links, /api/turn) live in public/_redirects.
 
 # Response headers (security and caching) live in public/_headers, shared with Cloudflare Pages.
+
+# The public demo moved to https://konvene.app (Cloudflare Pages). Old links to the
+# Netlify copy go there. This only matches that one hostname, so forks are unaffected.
+[[redirects]]
+  from = "https://konvene-calls.netlify.app/*"
+  to = "https://konvene.app/:splat"
+  status = 301
+  force = true
