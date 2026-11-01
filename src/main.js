@@ -5,6 +5,7 @@ import { Quality, TIERS, worse } from "./quality.js";
 import { join, makeRoomCode } from "./net.js";
 import { iceServers } from "./config.js";
 import { CallRecorder } from "./recorder.js";
+import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
 import { CAN_LOCAL, findLanguage, install as installCaptions, Transcriber } from "./captions.js";
 import { LOOKS, LIGHTS } from "./fx.js";
 import { BACKGROUNDS } from "./backgrounds.js";
@@ -344,7 +345,36 @@ function buildDevicePickers(container) {
     f.append(w);
     if (k.key === "mic") { const m = el("span", "meter"); m.append(el("i")); f.append(m); }
     container.append(f);
+    // how your microphone is cleaned up (sound.js)
+    if (k.key === "mic") {
+      const n = el("label", "field");
+      n.append(el("span", null, "Noise reduction"));
+      const nw = el("span", "select-wrap");
+      const ns = document.createElement("select");
+      ns.dataset.noise = "";
+      ns.setAttribute("aria-label", "Noise reduction");
+      for (const m of NOISE_MODES) if (m.value !== "strong" || CAN_STRONG) ns.append(new Option(m.label, m.value));
+      ns.value = state.pipe.noise;
+      nw.append(icon("i-mic"), ns);
+      n.append(nw, el("small", "field-hint", noiseHint(state.pipe.noise)));
+      container.append(n);
+    }
   }
+}
+function noiseHint(v) { const m = NOISE_MODES.find((x) => x.value === v); return m ? m.hint : ""; }
+
+// standard, strong or original sound: reopen the microphone with the new setting
+async function setNoise(mode) {
+  if (!NOISE_MODES.some((m) => m.value === mode) || mode === state.pipe.noise) return;
+  state.pipe.noise = mode;
+  state.pipe.noiseFailed = false;
+  saveNoise(mode);
+  for (const s of $$("select[data-noise]")) { s.value = mode; const h = s.closest(".field").querySelector(".field-hint"); if (h) h.textContent = noiseHint(mode); }
+  if (state.pipe.micStream) {
+    try { await swapMic(state.pipe.micId || state.devices.mic); } catch { toast("The microphone couldn't be reopened."); return; }
+    if (mode === "strong" && state.pipe.noiseFailed) { toast("Strong noise reduction couldn't start in this browser, so standard is on."); return; }
+  }
+  toast(mode === "strong" ? "Strong noise reduction on" : mode === "off" ? "Original sound on. Use headphones so others don't hear an echo." : "Standard noise reduction on", 3000);
 }
 
 async function refreshDevices() {
@@ -450,6 +480,21 @@ async function openDeviceMenu(btn) {
       item.addEventListener("click", () => { closeDeviceMenu(); if (!on) switchDevice(k.key, d.deviceId); });
       menu.append(item);
     });
+  }
+  if (btn.dataset.menu === "mic") {
+    menu.append(el("h3", null, "Noise reduction"));
+    for (const m of NOISE_MODES) {
+      if (m.value === "strong" && !CAN_STRONG) continue;
+      const item = el("button");
+      item.type = "button";
+      item.setAttribute("role", "menuitemradio");
+      const on = state.pipe.noise === m.value;
+      item.setAttribute("aria-checked", String(on));
+      item.append(icon("i-check"), el("span", null, m.label));
+      item.title = m.hint;
+      item.addEventListener("click", () => { closeDeviceMenu(); setNoise(m.value); });
+      menu.append(item);
+    }
   }
   menu.dataset.for = btn.dataset.menu;
   menu.hidden = false;
@@ -1802,7 +1847,12 @@ async function init() {
     }, 0);
   }
   if (navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener("devicechange", refreshDevices);
-  document.addEventListener("change", (e) => { const s = e.target.closest("select[data-kind]"); if (s && s.value) switchDevice(s.dataset.kind, s.value); });
+  document.addEventListener("change", (e) => {
+    const s = e.target.closest("select[data-kind]");
+    if (s && s.value) switchDevice(s.dataset.kind, s.value);
+    const n = e.target.closest("select[data-noise]");
+    if (n) setNoise(n.value);
+  });
 
   // explicit choices are remembered for next time (holding Space to talk is not)
   $$('[data-toggle="mic"]').forEach((b) => b.addEventListener("click", () => setMic(!state.mic).then(saveAv)));
@@ -1921,7 +1971,7 @@ async function init() {
     const i = items.indexOf(document.activeElement);
     items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
   });
-  addEventListener("click", () => { state.audio.resume(); for (const v of $$("#tiles video, #spotlight video", stageEl())) if (v.paused) v.play().catch(() => {}); });
+  addEventListener("click", () => { state.audio.resume(); if (state.pipe.denoiser) state.pipe.denoiser.resume(); for (const v of $$("#tiles video, #spotlight video", stageEl())) if (v.paused) v.play().catch(() => {}); });
   speakingLoop();
   window.__gr = state; // for tests
   window.__grLink = (withPass) => link(state.code, withPass);
