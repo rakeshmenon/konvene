@@ -29,7 +29,7 @@ npm run dev          # http://localhost:8790, two tabs on /?local=1 for a call
 
 1. For anything bigger than a small fix, open an issue first so we can agree on the approach.
 2. Branch from `main`. Keep pull requests focused on one thing.
-3. Run `npm run build` and `npm test`. Both must pass. If you touched face or background effects, run the test with `FACE_VIDEO=<a .y4m video of a face>` too, and check the effect by eye in a real browser.
+3. Run `npm run lint`, `npm run build` and `npm test` (or all three with `npm run check`). They must pass. If you touched face or background effects, run the test with `FACE_VIDEO=<a .y4m video of a face>` too, and check the effect by eye in a real browser.
 4. For visible changes, add before and after screenshots to the pull request.
 5. Add a line to `CHANGELOG.md` under "Unreleased".
 

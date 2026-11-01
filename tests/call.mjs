@@ -197,7 +197,7 @@ await b.waitForFunction(() => !document.querySelector("#dev-menu").hidden, null,
 const micMenu = await b.evaluate(() => ({ open: !document.querySelector("#dev-menu").hidden, items: [...document.querySelectorAll("#dev-menu button")].map((x) => x.textContent), heads: [...document.querySelectorAll("#dev-menu h3")].map((x) => x.textContent) }));
 ok(micMenu.open && micMenu.heads.includes("Microphone") && micMenu.heads.includes("Speakers") && micMenu.items.length >= 2, `mic arrow opens microphone and speaker menu ${JSON.stringify(micMenu)}`);
 await shot(b, `${OUT}/04f-mic-menu.png`);
-const before = await b.evaluate(() => window.__gr.pipe.micId);
+
 const pick = await b.evaluate(() => { const items = [...document.querySelectorAll("#dev-menu button")].slice(0, 3); const t = items.reverse().find((x) => x.getAttribute("aria-checked") === "false"); const label = t.textContent; t.click(); return label; });
 await b.waitForFunction((l) => window.__gr.pipe.micStream.getAudioTracks()[0].label === l, pick, { timeout: 10000 }).catch(() => {});
 const after = await b.evaluate(() => ({ id: window.__gr.pipe.micId, label: window.__gr.pipe.micStream.getAudioTracks()[0].label, n: window.__gr.pipe.stream.getAudioTracks().length, closed: document.querySelector("#dev-menu").hidden }));

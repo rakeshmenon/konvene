@@ -4,15 +4,19 @@
 
 # Konvene
 
-**Video calls that stay between you.**
+**The space between you stays yours.**
 
 Free, private video calls in the browser. Peer to peer, no account, no server in the middle,
-and every effect worked out on your own device.
+and every effect, caption and bit of noise reduction worked out on your own device.
 
-[Live demo](https://konvene-calls.netlify.app) · [Run your own](#run-your-own) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
+[Live demo](https://konvene-calls.netlify.app) · [Run your own](#run-your-own) · [Customise it](docs/customising.md) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
 
 [![CI](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml/badge.svg)](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-14523d.svg)](LICENSE)
+
+<br>
+
+<img src="docs/images/home.png" alt="The Konvene home page: two circles, you and them, overlap in a brass glow behind the words The space between you stays yours." width="100%">
 
 </div>
 
@@ -26,21 +30,34 @@ Most video apps promise to look after your data. Konvene is built so there is no
 - **No tracking.** No cookies, no analytics, no ads. The build strips MediaPipe's usage logging, and the page's Content Security Policy blocks it too.
 - **Your face stays home.** Background blur, virtual backgrounds, lighting, touch-up, makeup and face warps run on your GPU before the picture is sent.
 - **Recording is never secret.** It asks first and shows everyone a badge naming who is recording.
+- **You decide who gets in.** Lock a call with a passcode and let people in yourself, still without accounts.
 
 ## Features
 
+<img src="docs/images/the-call.png" alt="A Konvene call: a blurred background, live captions, and three people." width="100%">
+
 | | |
 |---|---|
-| **Calls** | Up to 6 people, clean links (`/abc-def-ghj`), optional passcode and asking before letting people in, a pre-join page to check camera, microphone and speakers (remembers your last choices), microphone required to join, refresh rejoins the call |
-| **Video** | Follows your camera up to full HD; per-person quality for weak connections (down to audio only), video sized to each viewer's tile, signal indicators |
+| **Calls** | Up to 6 people, clean links (`/abc-def-ghj`), a pre-join page to check camera, microphone and speakers (remembers your last choices), refresh rejoins the call |
+| **Who gets in** | Optional passcode (it encrypts the handshake) and asking before letting people in, with Let in and Don't let in for everyone in the call |
+| **Video** | Follows your camera up to full HD; per-person quality on weak connections (down to voice only), video sized to each viewer's tile, signal indicators |
+| **Sound** | Echo cancellation and noise suppression, strong noise reduction (RNNoise, on your device) or original sound for music |
+| **Captions** | Live captions made on the devices in the call (Chrome on a computer), sent only to people who turn them on |
 | **Background** | Blur (two strengths), virtual backgrounds, your own image, with a cutout that follows hair and leaves furniture out |
 | **Face** | Smooth skin, brighter eyes, whiter teeth, slimmer face, bigger eyes, lip colour, blush, and six fun warps |
 | **Light and looks** | Studio, ring light, golden hour, spotlight and more; nine colour looks |
 | **Smart** | Pauses your video when you step away, keeps you in frame, fixes low light, tells you when you talk while muted |
-| **Captions** | Live captions made on the devices in the call (Chrome on a computer), shown to whoever turns them on |
-| **Together** | Screen sharing with spotlight, chat, reactions, raise hand, pin, full screen, in-browser recording |
+| **Together** | Screen sharing with spotlight, chat, reactions, raise hand, pin, full screen, picture in picture, in-browser recording |
 | **Devices** | Pick camera, microphone and speakers from the call controls |
-| **Sound** | Echo cancellation and noise suppression, strong noise reduction (RNNoise, on your device) or original sound for music |
+
+### Browsers
+
+| | Chrome, Edge | Safari (Mac, iPhone, iPad) | Firefox |
+|---|---|---|---|
+| Calls, effects, sharing, recording | Yes | Yes (calls tested Mac to iPhone) | Should work, not yet tested |
+| Picture in picture | The whole call | One video | Firefox's own button |
+| Making captions | Chrome 139+ on a computer | No, but sees others' captions | No, but sees others' captions |
+| Strong noise reduction | Yes | Should work, not yet tested | Should work, not yet tested |
 
 ## Run your own
 
@@ -68,13 +85,17 @@ Open <http://localhost:8790>. To try a call on one computer, open <http://localh
 
 `npm run build` writes a static site to `dist/`. Upload it to any web host and send unknown paths to `/index.html` (call links are paths). Ready-made setups: Cloudflare Pages (`_redirects` included), nginx (`deploy/nginx.conf`), Docker (`docker build -t konvene . && docker run -p 8080:80 konvene`). Full guide: [docs/self-hosting.md](docs/self-hosting.md).
 
-## Settings
+## Settings and customising
 
 Copy `.env.example` to `.env`, or set the same names in your host's dashboard. All optional.
 
 | Variable | What it does |
 |---|---|
+| `KONVENE_NAME` | Your name for it: page titles, the wordmark, messages. |
 | `KONVENE_APP_ID` | Calls only meet browsers with the same app ID. Set your own to keep your calls separate from other copies. |
+| `KONVENE_MAX_PEOPLE` | Most people in one call, 2 to 8 (default 6). |
+| `KONVENE_DISABLE` | Switch features off: `recording`, `captions`, `screenshare`, `chat`, `effects`, `reactions`. |
+| `KONVENE_PASSCODE_DEFAULT`, `KONVENE_ASK_FIRST_DEFAULT` | New calls start locked. |
 | `KONVENE_OPERATOR`, `KONVENE_CONTACT_URL` | Who runs your copy, shown on the privacy page. |
 | `KONVENE_REPO_URL` | Where your copy's source lives; the site's GitHub links point here. |
 | `KONVENE_RELAYS` | Your own Nostr relays for the handshake. |
@@ -82,6 +103,8 @@ Copy `.env.example` to `.env`, or set the same names in your host's dashboard. A
 | `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL` | **Secret.** Any other TURN server. |
 
 `KONVENE_*` values are built into the page, so anyone can read them. Secrets stay on the server: the `/api/turn` function (Netlify or Vercel) trades them for relay passwords that expire after a few hours.
+
+Your logo, icons, link preview picture and colours go in a `custom/` folder, without touching the code. See **[Customising Konvene](docs/customising.md)** and [custom.example/](custom.example).
 
 ## How it works
 
@@ -103,6 +126,7 @@ netlify/        Netlify function
 api/            Vercel function
 scripts/        local server and .env reader
 tests/          end-to-end browser test (Playwright)
+custom.example/ your branding: copy to custom/
 deploy/         nginx config for your own server or Docker
 docs/           architecture and self-hosting guides
 ```
@@ -111,10 +135,11 @@ docs/           architecture and self-hosting guides
 
 ```sh
 npx playwright install chromium   # once
+npm run lint
 npm test
 ```
 
-The test runs a real two-person call in headless Chromium with fake devices: joining, muting, chat, screen sharing, recording, device switching, refresh rejoining, weak connections, passcodes, the waiting room, live captions (with a stand-in speech engine), and that no request leaves the site. Set `FACE_VIDEO` to a `.y4m` video of a face to also test face tracking and effects.
+The test runs a real two-person call in headless Chromium with fake devices: joining, muting, chat, screen sharing, recording, device switching, refresh rejoining, weak connections, noise reduction, passcodes, the waiting room, live captions (with a stand-in speech engine), and that no request leaves the site. CI runs the linter, the build and this test on every push. Set `FACE_VIDEO` to a `.y4m` video of a face to also test face tracking and effects.
 
 ## Contributing
 

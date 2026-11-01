@@ -1,0 +1,9 @@
+* text=auto eol=lf
+*.png binary
+*.woff2 binary
+*.task binary
+*.tflite binary
+*.command text eol=lf
+# keep GitHub's language bar about Konvene's own code
+public/models/** linguist-vendored
+THIRD_PARTY_NOTICES.txt linguist-documentation

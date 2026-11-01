@@ -8,6 +8,15 @@
 <title>Konvene: private video calls, free in your browser</title>
 <meta name="description" content="Free video calls that go straight between you and the people you call. No account, no app, nothing stored. Screen sharing, chat, recording and background blur in your browser.">
 <meta name="theme-color" content="#06110d">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Konvene">
+<meta property="og:title" content="Konvene: private video calls, free in your browser">
+<meta property="og:description" content="Video calls that go straight from your browser to theirs. No company in the middle, no account, nothing kept.">
+<meta property="og:image" content="{{SITE}}/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Konvene: the space between you stays yours.">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="preload" href="/fonts/instrument-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -72,8 +81,8 @@
     <div class="hero">
       <svg class="orbs" id="orbs" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMin slice" aria-hidden="true">
         <defs>
-          <radialGradient id="orb-fill" cx=".5" cy=".38" r=".62"><stop offset="0" stop-color="#1b4636" stop-opacity=".95"/><stop offset=".7" stop-color="#0c2119" stop-opacity=".55"/><stop offset="1" stop-color="#06110d" stop-opacity="0"/></radialGradient>
-          <radialGradient id="lens-fill" gradientUnits="userSpaceOnUse" cx="720" cy="600" r="300"><stop offset="0" stop-color="#ffd98c"/><stop offset=".45" stop-color="#f0b44c" stop-opacity=".78"/><stop offset="1" stop-color="#f0b44c" stop-opacity=".08"/></radialGradient>
+          <radialGradient id="orb-fill" cx=".5" cy=".38" r=".62"><stop class="s-orb" offset="0" stop-color="#1b4636" stop-opacity=".95"/><stop class="s-orb2" offset=".7" stop-color="#0c2119" stop-opacity=".55"/><stop class="s-night" offset="1" stop-color="#06110d" stop-opacity="0"/></radialGradient>
+          <radialGradient id="lens-fill" gradientUnits="userSpaceOnUse" cx="720" cy="600" r="300"><stop class="s-glow" offset="0" stop-color="#ffd98c"/><stop class="s-gold" offset=".45" stop-color="#f0b44c" stop-opacity=".78"/><stop class="s-gold" offset="1" stop-color="#f0b44c" stop-opacity=".08"/></radialGradient>
           <linearGradient id="orb-fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".3" stop-color="#fff"/><stop offset=".95" stop-color="#fff" stop-opacity="0"/></linearGradient>
           <mask id="orb-mask"><rect width="1440" height="900" fill="url(#orb-fade)"/></mask>
           <clipPath id="clip-you"><circle class="c-you" cx="590" cy="640" r="320"/></clipPath>
@@ -238,7 +247,7 @@
           </div>
         </div>
       </div>
-      <p class="also">Also in every call: screen sharing, chat, reactions, raise hand, picture in picture, pin and full screen, and device choice. Up to six people.</p>
+      <p class="also">Also in every call: screen sharing, chat, reactions, raise hand, picture in picture, pin and full screen, and device choice. Up to {{MAX}} people.</p>
     </section>
 
     <section class="source" id="open-source" aria-labelledby="os-title">
@@ -275,7 +284,7 @@
         <details><summary>Is Konvene really free?</summary><p>Yes. There's no paid plan and no ads. Calls go straight between browsers, so they cost almost nothing to run.</p></details>
         <details><summary>Can anyone else see or hear my call?</summary><p>Only the people in it. Video, voice, screens and chat go directly between your browsers, encrypted. On some strict networks the call is passed through a relay, still encrypted, and the relay can't see or hear it.</p></details>
         <details><summary>Do I need an account or an app?</summary><p>No. Open the link, type a name and join. Konvene works in Chrome, Edge, Safari and Firefox, on computers and phones.</p></details>
-        <details><summary>How many people can join?</summary><p>Up to six. Each browser sends its video to each other person, which keeps the call private and limits its size.</p></details>
+        <details><summary>How many people can join?</summary><p>Up to {{MAX}}. Each browser sends its video to each other person, which keeps the call private and limits its size.</p></details>
         <details><summary>What do people in the call learn about me?</summary><p>The name you type, and, as on any video call, your IP address.</p></details>
         <details><summary>Can I run my own copy?</summary><p>Yes. Konvene is open source under the AGPL. Deploy it to Netlify or Vercel with one click, or put it on any web host. <a href="/self-host.html">How to run your own</a></p></details>
       </div>
@@ -292,7 +301,7 @@
 
     <footer class="wrap ruled site-foot">
       <a class="brand small" href="/"><svg class="mark" aria-hidden="true"><use href="#i-logo-light"/></svg>konvene</a>
-      <p>Free, private video calls in your browser.<!--demo--> This is the public demo.<!--/demo--> Made by <a href="https://sublimecoder.io">Rakesh Menon</a>.</p>
+      <p>Free, private video calls in your browser.<!--demo--> This is the public demo.<!--/demo--> {{CREDIT}}</p>
       <nav aria-label="Footer"><a href="/self-host.html">Run your own</a><a href="{{REPO}}">GitHub</a><a href="/privacy.html">Privacy</a></nav>
     </footer>
   </section>

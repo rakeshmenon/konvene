@@ -1,11 +1,20 @@
 // Settings for this deployment. build.mjs fills __KONVENE__ from KONVENE_* environment variables
 // (see .env.example), so the same code runs on any host with its own settings.
-/* global __KONVENE__ */
+// (__KONVENE__ is declared for the linter in eslint.config.js)
 const C = typeof __KONVENE__ === "object" ? __KONVENE__ : {};
 
 export const CONFIG = {
+  // the name people see (KONVENE_NAME)
+  name: C.name || "Konvene",
   // calls only meet other browsers using the same app ID; change it to keep your deployment's calls separate
   appId: C.appId || "konvene-calls-v1",
+  // most people in one call (2 to 8)
+  maxPeople: C.maxPeople || 6,
+  // features switched off on this deployment: recording, captions, screenshare, chat, effects, reactions
+  disabled: new Set(C.disabled || []),
+  // what new calls start with on the pre-join page
+  passcodeDefault: !!C.passcodeDefault,
+  askFirstDefault: !!C.askFirstDefault,
   // Nostr relays used for the handshake (empty: Trystero's defaults)
   relays: C.relays || [],
   // where the browser asks for short-lived TURN relay passwords (a Netlify or Vercel function)

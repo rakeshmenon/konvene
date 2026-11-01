@@ -6,6 +6,8 @@ Read `README.md`, `CONTRIBUTING.md` and `docs/architecture.md` first. This file 
 
 - `npm install` once, then `npm run dev` (builds to `dist/` and serves http://localhost:8790).
 - `npm run build` after every change to `src/` or `public/`. Never edit `dist/`.
+- `npm run lint` (ESLint) must pass; CI runs it.
+- Deployment settings: `KONVENE_*` in `.env.example` and `docs/customising.md`; branding lives in `custom/`, never in code.
 - `npm test` runs the Playwright call test (needs `npx playwright install chromium` once). `FACE_VIDEO=<face.y4m>` adds face checks.
 - Two tabs on `/?local=1` make a call on one machine without the internet.
 
@@ -24,4 +26,5 @@ Read `README.md`, `CONTRIBUTING.md` and `docs/architecture.md` first. This file 
 
 - Plain JavaScript modules, no framework, no TypeScript. Comments say why.
 - User-facing text: short, plain English, no em dashes.
-- Pages are static HTML in `public/`; `build.mjs` fills `{{REPO}}`, `{{OPERATOR}}` and `<!--demo-->` blocks.
+- Pages are static HTML in `public/`; `build.mjs` fills `{{REPO}}`, `{{OPERATOR}}`, `{{CREDIT}}`, `{{MAX}}`, `{{SITE}}` and `<!--demo-->` blocks, and swaps in `KONVENE_NAME` and `custom/logo.svg`.
+- Home page class names must not clash with the app's (the home page shares the stylesheet).

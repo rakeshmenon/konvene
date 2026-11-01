@@ -8,7 +8,7 @@
 
 ## Checklist
 
-- [ ] `npm run build` and `npm test` pass
+- [ ] `npm run lint`, `npm run build` and `npm test` pass
 - [ ] Nothing new leaves the user's device, or `public/privacy.html` is updated to say so
 - [ ] New dependencies are listed in `THIRD_PARTY_NOTICES.txt`
 - [ ] `CHANGELOG.md` has a line under "Unreleased"

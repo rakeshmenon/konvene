@@ -1,0 +1,18 @@
+/* Your colours. Copy this folder to custom/ and change what you like; it loads after Konvene's
+   own styles. Every token is listed in docs/customising.md. */
+
+/* the pre-join page and the call (light) */
+:root {
+  --accent: #14523d;         /* buttons and highlights */
+  --accent-strong: #0f4231;  /* main buttons */
+  --brass: #e0a93c;          /* the speaking ring and a raised hand */
+}
+
+/* the home page (dark) */
+.home {
+  --night: #06110d;   /* background */
+  --gold: #f0b44c;    /* buttons and the glow where the circles meet */
+  --glow: #ffd98c;    /* centre of that glow */
+  --orb: #1b4636;     /* inside the circles */
+  --orb-2: #0c2119;
+}

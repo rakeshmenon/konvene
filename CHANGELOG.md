@@ -4,6 +4,12 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+## 1.1.0 (2026-11-01)
+
+- Added: customising without changing the code. `KONVENE_NAME` (your name in titles, the wordmark and messages; a renamed copy credits Konvene in its footer), `KONVENE_MAX_PEOPLE` (2 to 8, now enforced: whoever joined last steps back when a call is full), `KONVENE_DISABLE` (switch off recording, captions, screen sharing, chat, effects or reactions), `KONVENE_PASSCODE_DEFAULT` and `KONVENE_ASK_FIRST_DEFAULT`, and a `custom/` folder for your logo, icons, link preview picture and `custom.css` colour tokens (see `custom.example/` and `docs/customising.md`). The home page's colours are now tokens too.
+- Added: link previews (Open Graph and Twitter card tags, `og-image.png`; `KONVENE_SITE_URL`, filled in by Netlify and Vercel).
+- Added: ESLint (`npm run lint`, run in CI), a CodeQL workflow that starts once the repository is public, CODEOWNERS, `.gitattributes`, `AGENTS.md`, and README screenshots and a browser table.
+
 - Changed: the home page again, now night green with brass, around one idea: two circles, you and them, drift together on load and the space where they overlap lights up ("The space between you stays yours."). They follow the pointer a little; reduced motion shows them still. Then the call window with notes that appear as its story plays, where your call goes, the feature explorer, open source, questions and a closing call to action.
 - Changed: a new logo and favicon (two points joined by one brass line), an Apple touch icon, and a lowercase "konvene" wordmark.
 - Fixed: the previous home page's styles leaked into the app (pre-join Effects button, in-call caption lines and dialog notes). Home-only class names are now distinct, the shared styles are back, and the test checks caption lines stay visible.

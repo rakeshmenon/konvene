@@ -53,6 +53,8 @@ All optional; see `.env.example` for the full list with comments.
 
 Set `KONVENE_APP_ID` to something of your own, so your calls never meet browsers on other copies of Konvene.
 
+Your own name, logo, colours, feature switches and defaults for new calls: see [Customising Konvene](customising.md).
+
 ## A relay for strict networks (TURN)
 
 Most calls connect directly. Some networks (strict offices, hotels, some mobile carriers) block that; those calls need a TURN relay, which passes the encrypted media along without being able to decrypt it.

@@ -3,7 +3,7 @@ import { Pipeline } from "./pipeline.js";
 import { Pip, PIP_DOC, PIP_VIDEO } from "./pip.js";
 import { Quality, TIERS, worse } from "./quality.js";
 import { join, makeRoomCode } from "./net.js";
-import { iceServers } from "./config.js";
+import { iceServers, CONFIG } from "./config.js";
 import { CallRecorder } from "./recorder.js";
 import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
 import { initHome } from "./home.js";
@@ -18,7 +18,8 @@ const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
 // the call's tiles can move into a picture-in-picture window, so look them up from the stage itself
 const stageEl = () => state.stageEl || (state.stageEl = document.getElementById("stage"));
 const LOCAL = new URLSearchParams(location.search).has("local");
-const MAX_PEOPLE = 6;
+const MAX_PEOPLE = CONFIG.maxPeople; // KONVENE_MAX_PEOPLE, 6 by default
+const OFF = (f) => CONFIG.disabled.has(f); // KONVENE_DISABLE
 const FX_KEY = "gr_fx";
 const DEV_KEY = "gr_devices";
 
@@ -881,7 +882,7 @@ function joinRoom(code) {
   chat.onMessage = mine((d, { peerId }) => {
     if (!state.peers.has(peerId)) return;
     const text = String(d.text || "").slice(0, 500);
-    if (text) addMessage(nameOf(peerId), text, false);
+    if (text && !OFF("chat")) addMessage(nameOf(peerId), text, false);
   });
 
   state.mediaWait = new Map();
@@ -990,7 +991,12 @@ function rememberHosted(code) {
   try { localStorage.setItem(HOST_KEY, JSON.stringify([{ code, pass: state.pass, lock: state.lock, t: Date.now() }, ...hostedList().filter((x) => x.code !== code)].slice(0, 20))); } catch { /* private */ }
 }
 const SEC_KEY = "konvene_sec"; // your last choice for new calls: passcode on or off, ask first on or off
-function loadSec() { try { return JSON.parse(localStorage.getItem(SEC_KEY) || "{}"); } catch { return {}; } }
+// your last choice, or the deployment's default (KONVENE_PASSCODE_DEFAULT, KONVENE_ASK_FIRST_DEFAULT)
+function loadSec() {
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem(SEC_KEY) || "{}"); } catch { /* private */ }
+  return { pass: "pass" in s ? s.pass : CONFIG.passcodeDefault, wait: "wait" in s ? s.wait : CONFIG.askFirstDefault };
+}
 function saveSec() { try { localStorage.setItem(SEC_KEY, JSON.stringify({ pass: $("#sec-pass").checked, wait: $("#sec-wait").checked })); } catch { /* private */ } }
 function makePasscode() {
   const abc = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -1009,9 +1015,18 @@ function helloFor(id) {
 function promote(id) {
   const p = state.pending.get(id);
   if (!p || !state.room) return;
+  // full: whoever arrived last steps back (both sides compare how long they've been in)
+  if (state.peers.size + 1 >= MAX_PEOPLE) {
+    const mine = performance.now() - state.inAt;
+    if (mine < (p.age || 0)) {
+      const code = state.code;
+      exitRoom(); showLobby(code);
+      lobbyNote(`This call is full. Up to ${MAX_PEOPLE} people can be in a call.`);
+    }
+    return;
+  }
   state.pending.delete(id);
   dismissKnock(id);
-  if (state.peers.size + 1 >= MAX_PEOPLE) toast("This call is full (6 people).");
   state.peers.set(id, p);
   p.sentView = 0;
   state.actions.hello.send(helloFor(id), { target: id });
@@ -1295,6 +1310,7 @@ function ccUpdate() {
 }
 
 async function toggleCaptions() {
+  if (OFF("captions")) return;
   const cc = state.cc;
   const btn = $("#cc-btn");
   if (cc.on) {
@@ -1359,6 +1375,7 @@ function dropCaptions(id) {
 /* ---------------- screen sharing ---------------- */
 
 async function toggleShare() {
+  if (OFF("screenshare")) return;
   if (state.screen) { stopShare(); return; }
   if (!navigator.mediaDevices.getDisplayMedia) { toast("Screen sharing isn't supported in this browser."); return; }
   let stream;
@@ -1519,6 +1536,7 @@ function setHand(on) {
 }
 
 async function toggleRecording() {
+  if (OFF("recording") && !state.recorder.recording) return;
   if (!state.recorder.supported) { toast("Recording isn't supported in this browser."); return; }
   if (state.recorder.recording) {
     const blob = await state.recorder.stop();
@@ -1566,7 +1584,7 @@ function saveRecording() {
 async function invite() {
   const url = link(state.code);
   if (navigator.share && matchMedia("(pointer: coarse)").matches) {
-    try { await navigator.share({ title: "Join my Konvene", url }); return; } catch { /* cancelled */ }
+    try { await navigator.share({ title: `Join my ${CONFIG.name} call`, url }); return; } catch { /* cancelled */ }
   }
   try { await navigator.clipboard.writeText(url); toast("Invite link copied"); }
   catch { toast(url, 8000); }
@@ -1829,8 +1847,8 @@ async function init() {
     btn.disabled = false;
     if (!ok) {
       showHint(state.micError === "NotAllowedError"
-        ? "Konvene needs your microphone to join. Allow it in the address bar (the camera icon), then press the button again. You can stay muted."
-        : "Konvene needs a microphone to join, and none was found. Plug one in and try again.");
+        ? `${CONFIG.name} needs your microphone to join. Allow it in the address bar (the camera icon), then press the button again. You can stay muted.`
+        : `${CONFIG.name} needs a microphone to join, and none was found. Plug one in and try again.`);
       return;
     }
     showHint("");
@@ -1859,6 +1877,10 @@ async function init() {
   });
   addEventListener("keyup", (e) => { if (e.code === "Space" && spaceTalk) { spaceTalk = false; setMic(false); } });
   addEventListener("blur", () => { if (spaceTalk) { spaceTalk = false; setMic(false); } });
+  // features this deployment switched off (KONVENE_DISABLE)
+  const hide = { recording: ["#rec-btn"], captions: ["#cc-btn"], screenshare: ["#share-btn"], chat: ['[data-panel="chat"]'], effects: ["[data-open-fx]"], reactions: [".react-wrap"] };
+  for (const [f, sels] of Object.entries(hide)) if (OFF(f)) for (const s of sels) for (const e of $$(s)) e.hidden = true;
+  if (OFF("effects")) state.pipe.applySettings({ bg: "none", look: "natural", light: "off", ...FACE_DEFAULTS });
   $("#share-btn").addEventListener("click", toggleShare);
   $("#cc-btn").addEventListener("click", toggleCaptions);
   // can this browser caption your voice on the device right now? (checks only, never downloads)
@@ -1876,6 +1898,7 @@ async function init() {
   addEventListener("scroll", closeDeviceMenu, { passive: true });
   $("#chat-form").addEventListener("submit", (e) => {
     e.preventDefault();
+    if (OFF("chat")) return;
     const inp = $("#chat-input");
     const text = inp.value.trim().slice(0, 500);
     if (!text || !state.actions) return;
