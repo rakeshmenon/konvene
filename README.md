@@ -32,7 +32,7 @@ Most video apps promise to look after your data. Konvene is built so there is no
 | | |
 |---|---|
 | **Calls** | Up to 6 people, clean links (`/abc-def-ghj`), a pre-join page to check camera, microphone and speakers (remembers your last choices), microphone required to join, refresh rejoins the call |
-| **Video** | Follows your camera up to full HD, bitrate tuned to the number of people |
+| **Video** | Follows your camera up to full HD; per-person quality for weak connections (down to audio only), video sized to each viewer's tile, signal indicators |
 | **Background** | Blur (two strengths), virtual backgrounds, your own image, with a cutout that follows hair and leaves furniture out |
 | **Face** | Smooth skin, brighter eyes, whiter teeth, slimmer face, bigger eyes, lip colour, blush, and six fun warps |
 | **Light and looks** | Studio, ring light, golden hour, spotlight and more; nine colour looks |

@@ -1,6 +1,7 @@
 import { dlog } from "./debug.js"; // first, so it sees every connection
 import { Pipeline } from "./pipeline.js";
 import { Pip, PIP_DOC, PIP_VIDEO } from "./pip.js";
+import { Quality, TIERS, worse } from "./quality.js";
 import { join, makeRoomCode } from "./net.js";
 import { iceServers } from "./config.js";
 import { CallRecorder } from "./recorder.js";
@@ -559,6 +560,7 @@ function renderTile(id) {
   $(".tile-name span:last-child", li).textContent = (p.name || "Guest") + (me ? " (you)" : "");
   li.classList.toggle("mic-off", p.mic === false);
   li.classList.toggle("hand", !!p.hand);
+  if (!me) renderSignal(id);
   layout();
 }
 
@@ -628,6 +630,7 @@ function layout() {
   $("#count").textContent = people === 1 ? "Just you" : `${people} in the call`;
   $("#people-n").textContent = String(people);
   if (state.panel === "people") renderPeople();
+  sendViews();
 }
 
 function onTileAction(e) {
@@ -727,7 +730,27 @@ function joinRoom(code) {
   const rec = room.makeAction("rec");
   const share = room.makeAction("share");
   const chat = room.makeAction("chat");
-  state.actions = { hello, status, rec, share, chat };
+  const linkA = room.makeAction("link"); // "this is how well I reach you"
+  const viewA = room.makeAction("view"); // "I show you this many pixels wide"
+  state.actions = { hello, status, rec, share, chat, link: linkA, view: viewA };
+  state.quality = new Quality({
+    conns: () => (room.peerConns ? room.peerConns() : []),
+    camTrack: () => state.pipe.stream.getVideoTracks()[0],
+    out: () => ({ w: state.pipe.W, h: state.pipe.H }),
+    onTier: (id, tier) => {
+      dlog(`link to ${id}: ${tier}`);
+      linkA.send({ t: tier }, { target: id });
+      renderSignal(id);
+      if (tier === "bad") toast(`The connection to ${nameOf(id)} is very weak, so video between you is paused. You can still hear each other.`, 6000);
+    },
+  });
+  linkA.onMessage = (d, { peerId }) => {
+    const p = state.peers.get(peerId);
+    if (!p) return;
+    p.theirTier = TIERS.includes(d && d.t) ? d.t : "good";
+    renderSignal(peerId);
+  };
+  viewA.onMessage = (d, { peerId }) => state.quality.setView(peerId, Math.max(0, Math.min(8000, Number(d && d.w) || 0)));
 
   const me = () => ({ name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null });
 
@@ -780,6 +803,9 @@ function joinRoom(code) {
   };
   room.onPeerJoin = (peerId) => {
     dlog(`peer ${peerId} joined`);
+    const known = state.peers.get(peerId);
+    if (known) known.sentView = 0; // a reconnect: tell them our tile size again
+    setTimeout(sendViews, 1500);
     if (state.peers.size + 1 >= MAX_PEOPLE && !state.peers.has(peerId)) toast("This call is full (6 people).");
     hello.send(me(), { target: peerId });
     state.mediaWait.delete(peerId);
@@ -833,26 +859,55 @@ function joinRoom(code) {
   state.broadcastStatus = () => status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away });
 }
 
-// sharp video like Meet: give the camera a generous bitrate, shared out as the call grows
-// (everyone sends a separate copy to each person, so more people means less per copy)
-function tuneBitrate() {
-  if (!state.room || !state.room.connections) return;
-  const n = Math.max(1, state.peers.size);
-  const bps = n === 1 ? 2_500_000 : n === 2 ? 1_800_000 : n === 3 ? 1_300_000 : 1_000_000;
-  const camTrack = state.pipe.stream.getVideoTracks()[0];
-  for (const pc of state.room.connections()) {
-    for (const snd of pc.getSenders ? pc.getSenders() : []) {
-      if (snd.track !== camTrack) continue;
-      const p = snd.getParameters();
-      if (!p.encodings || !p.encodings.length) p.encodings = [{}];
-      if (p.encodings[0].maxBitrate === bps) continue;
-      p.encodings[0].maxBitrate = bps;
-      p.degradationPreference = "balanced";
-      snd.setParameters(p).catch(() => {});
+// weak connections: quality per person, audio-only fallback, smaller video for small tiles (quality.js)
+setInterval(() => { if (state.quality) state.quality.tick(); }, 2000);
+
+// tell each person how big we show them, so they don't send us more than we can see
+let viewTimer = 0;
+function sendViews() {
+  clearTimeout(viewTimer);
+  viewTimer = setTimeout(() => {
+    if (!state.inCall || !state.actions || !state.actions.view) return;
+    const hidden = document.hidden && !(state.pip && state.pip.open);
+    for (const [id, p] of state.peers) {
+      let w = 0;
+      if (hidden) w = 320; // nobody is looking: a small picture is plenty
+      else if (p.tile && p.tile.isConnected) {
+        const win = p.tile.ownerDocument.defaultView || window;
+        w = Math.round(p.tile.getBoundingClientRect().width * (win.devicePixelRatio || 1));
+      }
+      if (!w) continue;
+      if (p.sentView && Math.abs(p.sentView - w) / p.sentView < 0.15) continue;
+      p.sentView = w;
+      state.actions.view.send({ w }, { target: id });
     }
-  }
+  }, 400);
 }
-setInterval(tuneBitrate, 3000);
+addEventListener("resize", sendViews);
+document.addEventListener("visibilitychange", sendViews);
+
+// the signal indicator on someone's tile: the worse of how we reach them and how they reach us
+function renderSignal(id) {
+  const p = state.peers.get(id);
+  if (!p || !p.tile || !state.quality) return;
+  const tier = worse(state.quality.tierOf(id), p.theirTier);
+  let sig = $(".signal", p.tile);
+  if (!sig) {
+    sig = el("span", "signal");
+    sig.append(el("i"), el("i"), el("i"));
+    p.tile.append(sig);
+    const paused = el("p", "tile-paused");
+    paused.textContent = "Video paused to keep the sound clear";
+    p.tile.append(paused);
+  }
+  sig.dataset.tier = tier;
+  sig.hidden = tier === "good";
+  const words = { weak: "Weak connection: video lowered", poor: "Poor connection: video lowered a lot", bad: "Very weak connection: audio only" };
+  sig.title = words[tier] || "";
+  sig.setAttribute("aria-label", words[tier] || "Good connection");
+  // they paused their video to us: say so instead of showing a frozen picture
+  p.tile.classList.toggle("video-paused", p.theirTier === "bad" && p.cam !== false);
+}
 
 function setRecBy(id, on) {
   if (on) state.recBy.set(id, true); else state.recBy.delete(id);
@@ -1306,7 +1361,8 @@ async function init() {
         const vids = $$("#spotlight video, #tiles .tile:not(.me) video", stageEl()).filter((v) => v.videoWidth > 0);
         return vids[0] || null;
       },
-      onChange: (open) => { $("#pip-btn").setAttribute("aria-pressed", String(open)); },
+      onChange: (open) => { $("#pip-btn").setAttribute("aria-pressed", String(open)); for (const p of state.peers.values()) p.sentView = 0; sendViews(); },
+      onResize: () => sendViews(),
     },
   });
   $("#pip-btn").hidden = !(PIP_DOC || PIP_VIDEO);

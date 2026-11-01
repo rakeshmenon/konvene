@@ -567,3 +567,13 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 /* what the page shows while the call is in the small window */
 .pip-holder { display: grid; place-content: center; justify-items: center; gap: 1rem; text-align: center; color: var(--ink-2); padding: 2rem; }
 .pip-holder p { margin: 0; font-size: 1.05rem; }
+
+/* connection quality on a tile: three bars, shown only when it isn't good */
+.tile .signal { position: absolute; right: 10px; bottom: 10px; z-index: 3; display: inline-flex; align-items: flex-end; gap: 2px; height: 22px; padding: 4px 6px; border-radius: 8px; background: rgba(16, 26, 22, .55); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.tile .signal i { display: block; width: 3px; border-radius: 1px; background: rgba(255, 255, 255, .3); }
+.tile .signal i:nth-child(1) { height: 5px; } .tile .signal i:nth-child(2) { height: 9px; } .tile .signal i:nth-child(3) { height: 13px; }
+.tile .signal[data-tier="weak"] i:nth-child(-n+2) { background: var(--brass); }
+.tile .signal[data-tier="poor"] i:nth-child(1), .tile .signal[data-tier="bad"] i:nth-child(1) { background: var(--rec); }
+.tile-paused { display: none; position: absolute; inset: 0; z-index: 1; margin: 0; place-content: center; padding: 1rem; text-align: center; font-size: .9rem; color: #fff; background: rgba(16, 26, 22, .72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.tile.video-paused .tile-paused { display: grid; }
+.tile.video-paused .tile-name, .tile.video-paused .signal, .tile.video-paused .hand-badge { z-index: 4; }
