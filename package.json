@@ -6,11 +6,25 @@
   "license": "AGPL-3.0-only",
   "author": "Rakesh Menon",
   "homepage": "https://github.com/rakeshmenon/konvene#readme",
-  "repository": { "type": "git", "url": "git+https://github.com/rakeshmenon/konvene.git" },
-  "bugs": { "url": "https://github.com/rakeshmenon/konvene/issues" },
-  "keywords": ["video-call", "webrtc", "peer-to-peer", "privacy", "mediapipe", "background-blur"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rakeshmenon/konvene.git"
+  },
+  "bugs": {
+    "url": "https://github.com/rakeshmenon/konvene/issues"
+  },
+  "keywords": [
+    "video-call",
+    "webrtc",
+    "peer-to-peer",
+    "privacy",
+    "mediapipe",
+    "background-blur"
+  ],
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "build": "node build.mjs",
     "dev": "node build.mjs && node scripts/serve.mjs",
@@ -20,6 +34,7 @@
   "dependencies": {
     "@fontsource-variable/instrument-sans": "^5.3.0",
     "@mediapipe/tasks-vision": "1.2.0",
+    "@sapphi-red/web-noise-suppressor": "0.4.1",
     "trystero": "^0.26.0"
   },
   "devDependencies": {

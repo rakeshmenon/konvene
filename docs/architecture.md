@@ -26,6 +26,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `recorder.js` | Records the call grid and every voice into one file, in the browser |
 | `quality.js` | Weak connections: a quality tier per person from WebRTC stats, audio-only fallback, encoder settings sized to each viewer's tile |
 | `captions.js` | Live captions with the Web Speech API on the device only (`processLocally`), restricted to desktop Google Chrome 139+ (other Chromium builds can crash when asked); a `Transcriber` per audio track that restarts itself |
+| `sound.js` | Microphone clean-up: browser echo/noise/level control, optional RNNoise in an AudioWorklet at 48 kHz (strong), or none (original sound) |
 | `pip.js` | Picture-in-picture: moves the call's stage into a Document Picture-in-Picture window (auto on tab switch in Chrome 120+ via the media session `enterpictureinpicture` action), with a video PiP fallback |
 | `config.js` | Deployment settings built in from `KONVENE_*` variables, and fetching relay passwords |
 

@@ -64,6 +64,11 @@ mkdirSync(`${OUT}/vendor/mediapipe/wasm`, { recursive: true });
 for (const f of ["vision_wasm_internal.js", "vision_wasm_internal.wasm", "vision_wasm_nosimd_internal.js", "vision_wasm_nosimd_internal.wasm"]) {
   copyFileSync(`node_modules/@mediapipe/tasks-vision/wasm/${f}`, `${OUT}/vendor/mediapipe/wasm/${f}`);
 }
+// strong noise reduction (src/sound.js): the RNNoise worklet and its WebAssembly, served from this site
+mkdirSync(`${OUT}/vendor/rnnoise`, { recursive: true });
+const wns = "node_modules/@sapphi-red/web-noise-suppressor/dist";
+copyFileSync(`${wns}/rnnoise/workletProcessor.js`, `${OUT}/vendor/rnnoise/rnnoiseWorklet.js`);
+for (const f of ["rnnoise.wasm", "rnnoise_simd.wasm"]) copyFileSync(`${wns}/${f}`, `${OUT}/vendor/rnnoise/${f}`);
 for (const m of ["face_landmarker.task", "selfie_multiclass_256x256.tflite", "selfie_segmenter_landscape.tflite"]) {
   if (!existsSync(`${OUT}/models/${m}`)) throw new Error(`Missing public/models/${m} (see docs/architecture.md)`);
 }

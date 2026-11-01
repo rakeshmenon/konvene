@@ -40,6 +40,7 @@ Most video apps promise to look after your data. Konvene is built so there is no
 | **Captions** | Live captions made on the devices in the call (Chrome on a computer), shown to whoever turns them on |
 | **Together** | Screen sharing with spotlight, chat, reactions, raise hand, pin, full screen, in-browser recording |
 | **Devices** | Pick camera, microphone and speakers from the call controls |
+| **Sound** | Echo cancellation and noise suppression, strong noise reduction (RNNoise, on your device) or original sound for music |
 
 ## Run your own
 

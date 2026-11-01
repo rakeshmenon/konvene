@@ -19,6 +19,7 @@
 
   <h2>Video and voice</h2>
   <p>Calls use WebRTC, so video and voice travel <strong>directly between the browsers in the room, encrypted</strong>. We don't run a media server, so <strong>we never receive or store your call</strong>.</p>
+  <p>Your microphone is cleaned up on your device before it's sent: your browser's echo and noise control by default, plus a small noise-removal model (RNNoise, served from this site) if you choose strong noise reduction. <strong>Your audio isn't sent anywhere to be processed.</strong></p>
 
   <h2>Screen sharing and chat</h2>
   <p>A screen you share and the chat messages you send travel the same way as video: directly to the other people in the call. <strong>Chat messages are not saved anywhere</strong> and disappear when you leave. Your browser asks you which screen, window or tab to share, and you can stop at any time.</p>

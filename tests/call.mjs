@@ -179,6 +179,18 @@ const micSwitch = await b.evaluate(async () => {
 });
 ok(micSwitch.n === 1 && micSwitch.live, `microphone switch keeps one live track ${JSON.stringify(micSwitch)}`);
 
+// noise reduction: strong runs RNNoise on this device and the other side still hears you
+const audioIn = (p) => p.evaluate(async () => { let n = 0; for (const pc of window.__gr.room.connections()) (await pc.getStats()).forEach((r) => { if (r.type === "inbound-rtp" && r.kind === "audio") n += r.bytesReceived || 0; }); return n; });
+const setSound = (p, v) => p.evaluate(async (v) => { const sel = document.querySelector('#call-devices select[data-noise]'); sel.value = v; sel.dispatchEvent(new Event("change", { bubbles: true })); await new Promise((r) => setTimeout(r, 2000)); const t = window.__gr.pipe.sendTrack; return { mode: window.__gr.pipe.noise, failed: !!window.__gr.pipe.noiseFailed, rnnoise: !!window.__gr.pipe.cleanup, live: t.readyState === "live", tracks: window.__gr.pipe.stream.getAudioTracks().length, sent: window.__gr.room.connections().some((pc) => pc.getSenders().some((x) => x.track === t)) }; }, v);
+const strong = await setSound(b, "strong");
+const heard0 = await audioIn(a); await a.waitForTimeout(1500); const heard1 = await audioIn(a);
+ok(strong.mode === "strong" && !strong.failed && strong.rnnoise && strong.live && strong.tracks === 1 && strong.sent && heard1 > heard0, `strong noise reduction runs on the device and the call still hears you ${JSON.stringify({ ...strong, bytes: heard1 - heard0 })}`);
+const orig = await setSound(b, "off");
+ok(orig.mode === "off" && !orig.rnnoise && orig.live && orig.sent, `original sound turns processing off ${JSON.stringify(orig)}`);
+ok(await b.evaluate(() => { const s = window.__gr.pipe.micStream.getAudioTracks()[0].getSettings(); return s.noiseSuppression !== true && s.echoCancellation !== true; }), "original sound asks the browser for no echo or noise processing");
+const std = await setSound(b, "standard");
+ok(std.mode === "standard" && std.live && std.sent, "back to standard noise reduction");
+
 // device menus on the mic and camera buttons
 await b.click('#call [data-menu="mic"]');
 await b.waitForFunction(() => !document.querySelector("#dev-menu").hidden, null, { timeout: 5000 }).catch(() => {});

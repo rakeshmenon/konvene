@@ -5,10 +5,13 @@ import { Overlay } from "./stickers.js";
 import { drawBackground } from "./backgrounds.js";
 import { MatteCleaner } from "./matte.js";
 import { FaceGeo, FACE_DEFAULTS, FACE_KEYS, faceFxOn } from "./face.js";
+import { micConstraints, Denoiser, loadNoise, CAN_STRONG } from "./sound.js";
 
 
 export class Pipeline {
   constructor() {
+    this.noise = loadNoise(); // "standard" | "strong" | "off" (sound.js)
+    this.denoiser = null;
     this.video = document.createElement("video");
     this.video.muted = true;
     this.video.playsInline = true;
@@ -56,11 +59,6 @@ export class Pipeline {
     return { video: v, audio: false };
   }
 
-  static micConstraints(id) {
-    const a = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
-    if (id) a.deviceId = { exact: id };
-    return { audio: a, video: false };
-  }
 
   // Nothing is opened here: camera and microphone stay off until you turn them on (or join).
   async start() {
@@ -151,16 +149,28 @@ export class Pipeline {
   // open (or switch) the microphone. Peers get a copy of its track, so muting silences what they
   // hear while we can still notice you talking (for the "you're muted" reminder).
   async openMic(id) {
-    const next = await Pipeline.get(Pipeline.micConstraints, id);
+    const mode = this.noise;
+    const next = await Pipeline.get((i) => micConstraints(i, mode), id);
     const old = this.micStream;
     const oldTrack = this.sendTrack;
-    const newTrack = next.getAudioTracks()[0].clone();
+    const oldClean = this.cleanup;
+    // strong noise reduction: what others hear goes through RNNoise first (falls back to standard)
+    let newTrack = null;
+    this.cleanup = null;
+    if (mode === "strong" && CAN_STRONG) {
+      try {
+        if (!this.denoiser) this.denoiser = new Denoiser();
+        const d = await this.denoiser.process(next);
+        newTrack = d.track; this.cleanup = d.dispose;
+      } catch (e) { console.warn("strong noise reduction unavailable", e); this.noiseFailed = true; }
+    }
+    if (!newTrack) newTrack = next.getAudioTracks()[0].clone();
     newTrack.enabled = this.micOn;
     if (oldTrack) this.stream.removeTrack(oldTrack);
     this.stream.addTrack(newTrack);
     this.micStream = next;
     this.sendTrack = newTrack;
-    return { oldTrack, newTrack, stop: () => { if (old) old.getTracks().forEach((t) => t.stop()); if (oldTrack) oldTrack.stop(); } };
+    return { oldTrack, newTrack, stop: () => { if (old) old.getTracks().forEach((t) => t.stop()); if (oldTrack) oldTrack.stop(); if (oldClean) oldClean(); } };
   }
 
   applySettings(s) {
@@ -381,5 +391,6 @@ export class Pipeline {
     clearInterval(this.bgTimer);
     for (const st of [this.camStream, this.micStream]) if (st) st.getTracks().forEach((t) => t.stop());
     if (this.sendTrack) this.sendTrack.stop();
+    if (this.cleanup) { this.cleanup(); this.cleanup = null; }
   }
 }
