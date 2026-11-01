@@ -1,6 +1,6 @@
 name: CodeQL
 
-# Static security analysis of the JavaScript. Runs once the repository is public
+# Static security analysis of the JavaScript. Skipped on private forks
 # (CodeQL on private repositories needs GitHub Advanced Security).
 on:
   push:

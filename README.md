@@ -12,6 +12,7 @@ and every effect, caption and bit of noise reduction worked out on your own devi
 [Live demo](https://konvene-calls.netlify.app) · [Run your own](#run-your-own) · [Customise it](docs/customising.md) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
 
 [![CI](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml/badge.svg)](https://github.com/rakeshmenon/konvene/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/rakeshmenon/konvene/actions/workflows/codeql.yml/badge.svg)](https://github.com/rakeshmenon/konvene/actions/workflows/codeql.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-14523d.svg)](LICENSE)
 
 <br>
