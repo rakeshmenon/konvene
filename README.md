@@ -22,7 +22,7 @@ Most video apps promise to look after your data. Konvene is built so there is no
 
 - **Straight to them.** Video, voice, screens and chat travel directly between browsers over WebRTC, encrypted the whole way.
 - **Nothing kept.** No server records your call or your chat. Recordings are made and saved on the recorder's own device.
-- **No account.** Type a name, share the link, start talking.
+- **No account.** Type a name, share the link, start talking. Add a passcode, or let people in yourself.
 - **No tracking.** No cookies, no analytics, no ads. The build strips MediaPipe's usage logging, and the page's Content Security Policy blocks it too.
 - **Your face stays home.** Background blur, virtual backgrounds, lighting, touch-up, makeup and face warps run on your GPU before the picture is sent.
 - **Recording is never secret.** It asks first and shows everyone a badge naming who is recording.
@@ -31,7 +31,7 @@ Most video apps promise to look after your data. Konvene is built so there is no
 
 | | |
 |---|---|
-| **Calls** | Up to 6 people, clean links (`/abc-def-ghj`), a pre-join page to check camera, microphone and speakers (remembers your last choices), microphone required to join, refresh rejoins the call |
+| **Calls** | Up to 6 people, clean links (`/abc-def-ghj`), optional passcode and asking before letting people in, a pre-join page to check camera, microphone and speakers (remembers your last choices), microphone required to join, refresh rejoins the call |
 | **Video** | Follows your camera up to full HD; per-person quality for weak connections (down to audio only), video sized to each viewer's tile, signal indicators |
 | **Background** | Blur (two strengths), virtual backgrounds, your own image, with a cutout that follows hair and leaves furniture out |
 | **Face** | Smooth skin, brighter eyes, whiter teeth, slimmer face, bigger eyes, lip colour, blush, and six fun warps |
@@ -112,7 +112,7 @@ npx playwright install chromium   # once
 npm test
 ```
 
-The test runs a real two-person call in headless Chromium with fake devices: joining, muting, chat, screen sharing, recording, device switching, refresh rejoining, and that no request leaves the site. Set `FACE_VIDEO` to a `.y4m` video of a face to also test face tracking and effects.
+The test runs a real two-person call in headless Chromium with fake devices: joining, muting, chat, screen sharing, recording, device switching, refresh rejoining, weak connections, passcodes and the waiting room, and that no request leaves the site. Set `FACE_VIDEO` to a `.y4m` video of a face to also test face tracking and effects.
 
 ## Contributing
 

@@ -4,6 +4,8 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Added: passcodes and asking to join. A new call can have a passcode (made for you, and editable) and can ask before letting people in. The passcode encrypts the handshake, so a browser without it can't connect; the link you copy includes it after the `#`, which never reaches any server, and there's a "Copy link without passcode" button. Someone asking to join waits on the pre-join page while everyone in the call sees "Name wants to join" with Let in and Don't let in (also in the People panel, with a soft sound). Until they're let in, nobody sends them video, voice, chat or names. Anyone in the call can turn asking first on or off. The person who started a call gets straight back in from the same browser for a week, and a refresh keeps you in.
+
 - Added: weak-connection handling. Each browser checks every connection every 2 seconds (bandwidth, packet loss, delay) and picks full quality, 720p, 360p at 15 fps, or audio only for that one person, stepping down quickly and back up slowly. Tiles show a signal indicator when a connection isn't good, and "Video paused to keep the sound clear" when it's audio only. People also say how big they show you, so nobody gets full HD for a small tile or a hidden tab, which cuts upload in six-person calls.
 
 - Added: picture-in-picture. In Chrome and Edge the call moves into a small always-on-top window (with mic, camera and leave buttons); Chrome opens it by itself when you switch tabs during a call. Elsewhere, the Pop out button uses the browser's video picture-in-picture.
