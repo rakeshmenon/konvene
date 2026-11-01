@@ -529,3 +529,7 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
   .lobby-controls { gap: .45rem; padding: 2rem .6rem .7rem; }
   .lobby-controls .pill-btn { padding: 0 .85rem; }
 }
+
+/* the invite box is a search-style field (so password managers leave it alone); keep it looking plain */
+#code-input { -webkit-appearance: none; appearance: none; }
+#code-input::-webkit-search-cancel-button, #code-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }

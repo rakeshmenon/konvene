@@ -71,10 +71,10 @@
             <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Encrypted device to device</li>
             <li><svg class="ok" aria-hidden="true" viewBox="0 0 20 20"><path d="m5 10.5 3.2 3.2L15 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Nothing stored</li>
           </ul>
-          <form id="code-form" class="code-form">
+          <form id="code-form" class="code-form" role="search" autocomplete="off">
             <label for="code-input">Got an invite?</label>
             <div class="code-row">
-              <input id="code-input" autocomplete="off" spellcheck="false" placeholder="Paste the link or code">
+              <input id="code-input" name="call-link" type="search" inputmode="url" enterkeyhint="go" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="Paste the link or code">
               <button class="btn secondary" type="submit">Join</button>
             </div>
           </form>
@@ -187,7 +187,7 @@
         <p class="lobby-sub" id="lobby-sub">Check how you look and sound. Only you can see this until you join.</p>
         <form id="join-form" class="lobby-form">
           <label for="name">Your name</label>
-          <input id="name" maxlength="20" autocomplete="nickname" placeholder="How others will see you" required>
+          <input id="name" name="display-name" maxlength="20" autocomplete="nickname" autocapitalize="words" data-1p-ignore data-lpignore="true" data-bwignore data-form-type="other" placeholder="How others will see you" required>
           <button class="btn primary" type="submit" id="join-btn">Join now</button>
         </form>
         <div class="lobby-link">
