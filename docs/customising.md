@@ -19,6 +19,7 @@ or in a `.env` file, then rebuild. All are optional. Full list in [.env.example]
 | `KONVENE_OPERATOR`, `KONVENE_CONTACT_URL` | empty | Who runs your copy, shown on the privacy page. |
 | `KONVENE_REPO_URL` | upstream | Where your copy's source lives. The AGPL asks you to offer it if you change Konvene. |
 | `KONVENE_SITE_URL` | from your host | Your site's address, for link previews. Netlify and Vercel fill it in. |
+| `KONVENE_MOVED_TO` | empty | Moved to a new address? Every visit to this copy is sent there, same path (Netlify and Cloudflare Pages). |
 | `KONVENE_CUSTOM_DIR` | `custom` | The folder with your branding files (below). |
 
 Example, a company copy with recording off and every call locked by default:

@@ -5,6 +5,7 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 ## Unreleased
 
 - Changed: the public demo now lives at https://konvene.app (Cloudflare Pages); the old Netlify address redirects there.
+- Added: `KONVENE_MOVED_TO` sends every visit to a copy that has moved, keeping the path.
 - Added: Cloudflare Pages support: `functions/api/turn.js` for relay passwords, and security headers moved to `public/_headers` (read by both Netlify and Cloudflare). Cloudflare builds skip `404.html` so call links answer 200.
 - Changed: the home page shows real Konvene screens instead of a drawn call window: three moments (check how you look, decide who comes in, talk with captions) that play in turn, and real screenshots in the features explorer. The people are VRoid sample characters standing in for cameras.
 - Fixed: on phones the call controls ran off the right edge of the screen. They now sit in two rows, and Share screen is hidden on browsers that can't share a screen.

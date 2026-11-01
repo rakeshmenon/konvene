@@ -129,9 +129,16 @@ for (const f of readdirSync(OUT).filter((x) => x.endsWith(".html"))) {
   if (/\{\{[A-Z_]+\}\}/.test(html)) throw new Error(`Unfilled placeholder in ${f}: ${html.match(/\{\{[A-Z_]+\}\}/)[0]}`);
   writeFileSync(`${OUT}/${f}`, html);
 }
+// a copy that has moved to a new address sends every visitor there, path and all
+// (written first in _redirects, which Netlify and Cloudflare read before anything else)
+const movedTo = (env.KONVENE_MOVED_TO || "").replace(/\/$/, "");
+if (movedTo) {
+  if (!/^https:\/\/[^\s/]+$/.test(movedTo)) throw new Error("KONVENE_MOVED_TO must look like https://example.com");
+  writeFileSync(`${OUT}/_redirects`, `/*  ${movedTo}/:splat  301!\n` + readFileSync(`${OUT}/_redirects`, "utf8"));
+}
 // static hosts without rewrites (GitHub Pages and others) show 404.html for call links.
 // Cloudflare Pages is the exception: it ignores the catch-all in _redirects and, with a
 // 404.html present, answers call links with status 404. Without one it serves index.html (200).
 if (!env.CF_PAGES) copyFileSync(`${OUT}/index.html`, `${OUT}/404.html`);
 
-console.log(`built ${OUT}/ (${app.name}, app ID ${app.appId}${app.disabled.length ? ", off: " + app.disabled.join(" ") : ""}${hasCustom ? ", custom/" : ""}${site.demo ? ", demo" : ""}${app.turn ? ", fixed TURN" : ""}${app.turnEndpoint ? ", TURN endpoint " + app.turnEndpoint : ""})`);
+console.log(`built ${OUT}/ (${app.name}, app ID ${app.appId}${app.disabled.length ? ", off: " + app.disabled.join(" ") : ""}${hasCustom ? ", custom/" : ""}${site.demo ? ", demo" : ""}${app.turn ? ", fixed TURN" : ""}${app.turnEndpoint ? ", TURN endpoint " + app.turnEndpoint : ""}${movedTo ? ", moved to " + movedTo : ""})`);
