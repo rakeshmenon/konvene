@@ -4,6 +4,11 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Added: picture-in-picture. In Chrome and Edge the call moves into a small always-on-top window (with mic, camera and leave buttons); Chrome opens it by itself when you switch tabs during a call. Elsewhere, the Pop out button uses the browser's video picture-in-picture.
+- Added: Leave asks for confirmation, and warns if you're recording.
+- Fixed: a small page scroll during calls (a hidden screen-reader element added 16px).
+- Changed: the privacy diagram on the home page now contrasts most video apps (through their servers) with Konvene (straight to them).
+
 - Added: a pre-join page. Starting a call or opening a call link now shows a large preview with camera, microphone and speaker choices, effects and your name, before anyone can see or hear you. Your last choices, including whether the camera and microphone were on, come back next time. The home page no longer has camera or microphone controls.
 
 - Renamed Klatch to Konvene. Settings are now `KONVENE_*` (rename your `KLATCH_*` environment variables). The app ID default is now `konvene-calls-v1`, so Konvene calls don't meet browsers still running Klatch.

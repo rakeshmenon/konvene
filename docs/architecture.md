@@ -24,6 +24,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `backgrounds.js` | Virtual backgrounds drawn in code |
 | `net.js` | Rooms: Trystero (handshake over public Nostr relays) or `?local=1` (handshake over a BroadcastChannel, for testing) |
 | `recorder.js` | Records the call grid and every voice into one file, in the browser |
+| `pip.js` | Picture-in-picture: moves the call's stage into a Document Picture-in-Picture window (auto on tab switch in Chrome 120+ via the media session `enterpictureinpicture` action), with a video PiP fallback |
 | `config.js` | Deployment settings built in from `KONVENE_*` variables, and fetching relay passwords |
 
 ## Calls

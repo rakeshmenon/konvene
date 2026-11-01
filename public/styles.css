@@ -39,7 +39,10 @@ h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; }
 a { color: var(--ink); }
 button { font: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
-.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* visually hidden but read aloud; pinned to the corner so it never adds height to the page */
+.sr-only { position: absolute; top: 0; left: 0; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
+/* the call fills the window exactly: nothing to scroll */
+body[data-screen="call"] { overflow: hidden; }
 .skiplink { position: absolute; left: 1rem; top: -4rem; z-index: 200; background: var(--ink); color: #fff; padding: .5rem 1rem; border-radius: 10px; font-weight: 500; }
 .skiplink:focus { top: 1rem; }
 svg { width: 20px; height: 20px; flex: none; }
@@ -179,13 +182,26 @@ body[data-screen="home"] { background: #10261f; }
 .privacy h2 { color: #fff; max-width: 12ch; }
 .privacy .section-lede { color: rgba(231, 238, 233, .7); }
 .privacy-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 3rem; align-items: end; margin-bottom: clamp(3rem, 7vh, 4.5rem); }
-.route { margin: 0; display: grid; gap: 1.6rem; justify-items: center; }
-.route-cloud { display: grid; justify-items: center; gap: .1rem; padding: .7rem 1.4rem; border: 1.5px dashed rgba(231, 238, 233, .3); border-radius: 12px; color: rgba(231, 238, 233, .55); font-size: .9rem; position: relative; }
-.route-cloud em { font-style: normal; font-size: .8rem; color: var(--brass); }
-.route-line { display: flex; align-items: center; width: 100%; max-width: 440px; gap: .8rem; }
-.route .node { flex: none; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-weight: 600; color: var(--ink); background: #e7eee9; }
-.route .wire { flex: 1; height: 3px; background: var(--brass); position: relative; border-radius: 2px; }
-.route .wire span { position: absolute; left: 50%; top: -1.9rem; transform: translateX(-50%); font-size: .8rem; color: var(--brass); white-space: nowrap; }
+.route { margin: 0; display: grid; gap: 1.1rem; width: 100%; max-width: 560px; justify-self: end; }
+.route-row { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); align-items: center; gap: 1rem; padding: 1.1rem 1.2rem; border-radius: 16px; }
+.route-row.is-them { background: rgba(231, 238, 233, .04); }
+.route-row.is-us { background: rgba(224, 169, 60, .08); box-shadow: inset 0 0 0 1px rgba(224, 169, 60, .28); }
+.route-label { margin: 0; font-size: .92rem; font-weight: 600; color: rgba(231, 238, 233, .6); }
+.is-us .route-label { color: #fff; }
+.route-line { display: flex; align-items: center; gap: .55rem; min-width: 0; }
+.route .node { flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-size: .85rem; font-weight: 600; color: var(--ink); background: #e7eee9; }
+.is-them .node { background: rgba(231, 238, 233, .16); color: rgba(231, 238, 233, .75); }
+.route .wire { flex: 1; min-width: 14px; height: 3px; position: relative; border-radius: 2px; }
+.is-them .wire { background: repeating-linear-gradient(90deg, rgba(231, 238, 233, .3) 0 6px, transparent 6px 11px); height: 2px; }
+.is-us .wire { background: var(--brass); }
+.route .wire span { position: absolute; left: 50%; top: -1.7rem; transform: translateX(-50%); font-size: .8rem; font-weight: 500; color: var(--brass); white-space: nowrap; }
+.route .hub { flex: none; display: grid; justify-items: center; gap: .1rem; padding: .5rem .8rem; border-radius: 10px; border: 1.5px solid rgba(231, 238, 233, .28); color: rgba(231, 238, 233, .8); font-size: .82rem; font-weight: 600; text-align: center; line-height: 1.2; }
+.route .hub small { font-size: .72rem; font-weight: 400; color: rgba(231, 238, 233, .5); }
+@media (max-width: 40rem) {
+  .route-row { grid-template-columns: 1fr; gap: .9rem; padding: 1rem; }
+  .route .node { width: 44px; height: 44px; font-size: .78rem; }
+  .route .hub { padding: .4rem .55rem; font-size: .75rem; }
+}
 .claims { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2.4rem 2.4rem; }
 .claims div { padding-top: 1.1rem; border-top: 1px solid rgba(231, 238, 233, .16); }
 .claims dt { font-size: 1.12rem; font-weight: 600; color: #fff; margin-bottom: .4rem; }
@@ -533,3 +549,21 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 /* the invite box is a search-style field (so password managers leave it alone); keep it looking plain */
 #code-input { -webkit-appearance: none; appearance: none; }
 #code-input::-webkit-search-cancel-button, #code-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; display: none; }
+
+.btn.danger { color: #fff; background: var(--rec); }
+.btn.danger:hover { background: #d63c41; }
+
+/* picture-in-picture window: the call's tiles and a small dock */
+.pip-body { margin: 0; height: 100vh; overflow: hidden; background: var(--bg); }
+.pip-wrap { height: 100vh; display: grid; grid-template-rows: minmax(0, 1fr) auto; }
+.pip-wrap .stage { min-height: 0; padding: 6px; }
+.pip-wrap .tile-actions { display: none; }
+.pip-dock { display: flex; justify-content: center; padding: 6px 8px 8px; }
+.pip-controls { display: flex; gap: 8px; align-items: center; }
+.pip-controls .round, .pip-controls .leave { width: 40px; height: 40px; }
+.pip-confirm { display: flex; align-items: center; gap: 8px; }
+.pip-confirm p { margin: 0 .3rem 0 0; font-weight: 600; font-size: .9rem; }
+[hidden] { display: none !important; }
+/* what the page shows while the call is in the small window */
+.pip-holder { display: grid; place-content: center; justify-items: center; gap: 1rem; text-align: center; color: var(--ink-2); padding: 2rem; }
+.pip-holder p { margin: 0; font-size: 1.05rem; }

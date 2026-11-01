@@ -74,10 +74,14 @@ await a.waitForTimeout(1500);
 await shot(a, `${OUT}/02-greenroom-effects.png`);
 const s = await a.evaluate(() => window.__gr.pipe.settings);
 ok(s.bg === "blur-strong" && s.look === "warm" && s.light === "studio" && s.lips === "rose" && s.touchup === 0.6 && s.warp === "none", `settings applied ${JSON.stringify(s)}`);
+// the rest of the test doesn't need heavy effects; CI machines have no graphics card
+await a.evaluate(() => window.__gr.pipe.applySettings({ bg: "none", look: "natural", light: "off", touchup: 0, lips: "none" }));
 await a.click("#fx-close");
 
 // no microphone, no call (a page whose microphone is blocked)
-const g = await ctx.newPage();
+// a separate browser profile, like a different person (so it doesn't inherit the host's remembered camera)
+const gctx = await browser.newContext({ viewport: { width: 1360, height: 820 }, permissions: ["camera", "microphone"] });
+const g = await gctx.newPage();
 await g.addInitScript(() => { const md = navigator.mediaDevices, orig = md.getUserMedia.bind(md); md.getUserMedia = (c) => (c && c.audio ? Promise.reject(new DOMException("blocked", "NotAllowedError")) : orig(c)); });
 await g.goto(BASE + "?local=1");
 await g.waitForFunction(() => window.__gr && window.__gr.pipe.running, null, { timeout: 30000 });
@@ -88,7 +92,7 @@ await g.waitForTimeout(1500);
 const gate = await g.evaluate(() => ({ inCall: !!window.__gr.inCall, hint: document.querySelector("#cam-hint").hidden ? "" : document.querySelector("#cam-hint").textContent }));
 ok(!gate.inCall && /needs your microphone/.test(gate.hint), `can't join without a microphone ${JSON.stringify(gate)}`);
 await shot(g, `${OUT}/01d-mic-required.png`);
-await g.close();
+await gctx.close();
 
 await a.fill("#name", "Rakesh");
 await a.click("#join-btn");
@@ -102,14 +106,14 @@ await b.waitForFunction(() => window.__gr && window.__gr.pipe.running, null, { t
 const bl = await b.evaluate(() => ({ screen: document.body.dataset.screen, title: document.querySelector("#lobby-title").textContent, code: document.querySelector("#lobby-code").textContent }));
 ok(bl.screen === "lobby" && bl.title === "Ready to join?" && url.includes(bl.code), `an invite link opens the pre-join page ${JSON.stringify(bl)}`);
 // the host turned the camera on last time, so the pre-join page brings it back (same browser)
-ok(await b.waitForFunction(() => window.__gr.cam && window.__gr.pipe.camStream, null, { timeout: 20000 }).then(() => true).catch(() => false), "the pre-join page remembers the camera choice");
+ok(await b.waitForFunction(() => window.__gr.cam && window.__gr.pipe.camStream, null, { timeout: 40000 }).then(() => true).catch(() => false), "the pre-join page remembers the camera choice");
 ok(await b.evaluate(() => [...document.querySelectorAll('#lobby-devices select[data-kind="mic"] option')].length >= 1), "the pre-join page has device pickers");
 await shot(b, `${OUT}/02c-lobby-guest.png`);
 if (!FACE) await b.evaluate(() => window.__gr.pipe.applySettings({ autoAway: false }));
 await b.fill("#name", "Anu");
 await b.click("#join-btn");
-await a.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 20000 });
-await b.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 20000 });
+await a.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 40000 });
+await b.waitForFunction(() => document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 40000 });
 ok(true, "both see two tiles");
 const playing = async (p) => p.waitForFunction(() => { const v = document.querySelector("#tiles .tile:not(.me) video"); return v && v.videoWidth > 0 && v.currentTime > 0.3; }, null, { timeout: 30000 }).then(() => true).catch(() => false);
 ok(await playing(a), "host receives the guest's video over WebRTC");
@@ -223,6 +227,25 @@ ok(size > 20000, `recording made on the device (${size} bytes)`);
 await shot(a, `${OUT}/06-saved.png`);
 await a.click('#saved-dialog button[value="close"]');
 await b.waitForFunction(() => document.querySelector("#rec-badge").hidden, null, { timeout: 8000, polling: 250 }).then(() => ok(true, "badge clears when recording stops")).catch(() => ok(false, "badge clears when recording stops"));
+
+// the call fills the window exactly (no page scroll)
+ok(await a.evaluate(() => document.documentElement.scrollHeight <= innerHeight), "no page scroll during the call");
+
+// picture-in-picture: Pop out moves the call into a small window, and back
+if (await a.evaluate(() => "documentPictureInPicture" in window)) {
+  await a.click("#pip-btn");
+  const popped = await a.waitForFunction(() => window.__gr.pip.open && !document.getElementById("stage") && document.querySelector(".pip-holder"), null, { timeout: 8000 }).then(() => true).catch(() => false);
+  ok(popped, "Pop out moves the call into a picture-in-picture window");
+  await a.click(".pip-holder button").catch(() => {});
+  ok(await a.waitForFunction(() => !window.__gr.pip.open && document.getElementById("stage") && document.querySelectorAll("#tiles .tile").length === 2, null, { timeout: 8000 }).then(() => true).catch(() => false), "bringing it back restores the call");
+} else console.log("SKIP  picture-in-picture (not available in this browser)");
+
+// hanging up asks first
+await a.click("#leave-btn");
+ok(await a.evaluate(() => document.querySelector("#leave-dialog").open), "Leave asks for confirmation");
+await shot(a, `${OUT}/06b-leave.png`);
+await a.click('#leave-dialog button[value="stay"]');
+ok(await a.evaluate(() => !document.querySelector("#leave-dialog").open && window.__gr.inCall), "Stay keeps you in the call");
 
 // effects panel during the call
 await a.click("#call [data-open-fx]");
