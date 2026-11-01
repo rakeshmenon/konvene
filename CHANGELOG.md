@@ -4,6 +4,8 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Added: a pre-join page. Starting a call or opening a call link now shows a large preview with camera, microphone and speaker choices, effects and your name, before anyone can see or hear you. Your last choices, including whether the camera and microphone were on, come back next time. The home page no longer has camera or microphone controls.
+
 - Renamed Klatch to Konvene. Settings are now `KONVENE_*` (rename your `KLATCH_*` environment variables). The app ID default is now `konvene-calls-v1`, so Konvene calls don't meet browsers still running Klatch.
 
 - Fixed: a call between a Mac and an iPhone flickered between one and two people. Both browsers added their video at the same moment, Safari dropped the connection, and it reconnected in a loop. Now one side sends its video first and the other follows.

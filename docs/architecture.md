@@ -14,7 +14,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 
 | File | What it does |
 |---|---|
-| `main.js` | Home page and green room, call screen, tiles, spotlight and pinning, chat, people, device menus and pickers, effects drawer with live previews, recording flow, shortcuts |
+| `main.js` | Home page, pre-join page (preview, devices, effects, name), call screen, tiles, spotlight and pinning, chat, people, device menus and pickers, effects drawer with live previews, recording flow, shortcuts |
 | `pipeline.js` | Your outgoing video: camera, vision, effects, overlays, the "stepped away" card, keep-in-frame zoom, low-light gain, and the microphone track |
 | `fx.js` | WebGL2 shaders: guided-filter edge refinement, mask-weighted background blur, virtual backgrounds, lighting, looks, and the face effects |
 | `face.js` | Face geometry from the 478 landmarks: smoothing, eye/mouth/cheek positions, and a soft skin/lips/mouth mask |
