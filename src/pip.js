@@ -66,6 +66,7 @@ export class Pip {
     this.replay();
     this.sync();
     w.addEventListener("pagehide", () => this.restore(), { once: true });
+    w.addEventListener("resize", () => this.ui.onResize && this.ui.onResize());
     this.ui.onChange(true);
   }
 

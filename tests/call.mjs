@@ -228,6 +228,27 @@ await shot(a, `${OUT}/06-saved.png`);
 await a.click('#saved-dialog button[value="close"]');
 await b.waitForFunction(() => document.querySelector("#rec-badge").hidden, null, { timeout: 8000, polling: 250 }).then(() => ok(true, "badge clears when recording stops")).catch(() => ok(false, "badge clears when recording stops"));
 
+// weak connections: a very weak link pauses video to that one person, keeps the voice, and says why
+const idB = await a.evaluate(() => [...window.__gr.peers.keys()][0]);
+await a.evaluate((id) => window.__gr.quality.force(id, "bad"), idB);
+const pausedSend = await a.waitForFunction((id) => { const s = window.__gr.quality.peers.get(id).sender; return s && s.track === null; }, idB, { timeout: 8000 }).then(() => true).catch(() => false);
+ok(pausedSend, "a very weak connection stops sending video to that person");
+ok(await b.waitForFunction(() => { const t = document.querySelector("#tiles .tile:not(.me)"); const s = t && t.querySelector(".signal"); return t.classList.contains("video-paused") && s && !s.hidden && s.dataset.tier === "bad"; }, null, { timeout: 8000 }).then(() => true).catch(() => false), "the other person sees the signal indicator and why video paused");
+await shot(b, `${OUT}/05b-weak-link.png`);
+ok(await b.evaluate(() => { const v = document.querySelector("#tiles .tile:not(.me) video"); return v && v.srcObject && v.srcObject.getAudioTracks().some((t) => t.readyState === "live"); }), "their voice still comes through");
+await a.evaluate((id) => window.__gr.quality.force(id, "good"), idB);
+ok(await a.waitForFunction((id) => { const s = window.__gr.quality.peers.get(id).sender; return s && s.track === window.__gr.pipe.stream.getVideoTracks()[0]; }, idB, { timeout: 8000 }).then(() => true).catch(() => false), "video resumes when the connection recovers");
+ok(await b.waitForFunction(() => !document.querySelector("#tiles .tile:not(.me)").classList.contains("video-paused"), null, { timeout: 8000 }).then(() => true).catch(() => false), "the paused note goes away");
+await a.evaluate((id) => window.__gr.quality.force(id, null), idB);
+// smaller video for smaller tiles: the guest reports how wide it shows the host, the host sends no more than that
+const enc = await a.waitForFunction((id) => {
+  const q = window.__gr.quality.peers.get(id); const s = q && q.sender;
+  if (!s || !q.view) return null;
+  const e = s.getParameters().encodings[0];
+  return e && e.scaleResolutionDownBy ? { scale: e.scaleResolutionDownBy, view: q.view, outW: window.__gr.pipe.W, bps: e.maxBitrate } : null;
+}, idB, { timeout: 10000 }).then((h) => h.jsonValue()).catch(() => null);
+ok(enc && enc.scale >= Math.max(1, enc.outW / enc.view) * 0.9, `video is sized to the tile it's shown in ${JSON.stringify(enc)}`);
+
 // the call fills the window exactly (no page scroll)
 ok(await a.evaluate(() => document.documentElement.scrollHeight <= innerHeight), "no page scroll during the call");
 

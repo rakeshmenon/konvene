@@ -24,6 +24,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `backgrounds.js` | Virtual backgrounds drawn in code |
 | `net.js` | Rooms: Trystero (handshake over public Nostr relays) or `?local=1` (handshake over a BroadcastChannel, for testing) |
 | `recorder.js` | Records the call grid and every voice into one file, in the browser |
+| `quality.js` | Weak connections: a quality tier per person from WebRTC stats, audio-only fallback, encoder settings sized to each viewer's tile |
 | `pip.js` | Picture-in-picture: moves the call's stage into a Document Picture-in-Picture window (auto on tab switch in Chrome 120+ via the media session `enterpictureinpicture` action), with a video PiP fallback |
 | `config.js` | Deployment settings built in from `KONVENE_*` variables, and fetching relay passwords |
 
@@ -34,7 +35,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 - Browsers find a route with public STUN servers. Where no direct route exists, an optional TURN relay passes the encrypted media along (see `server/turn.mjs`).
 - The outgoing video is a canvas, so switching cameras or effects needs nothing from the other side. Switching microphones swaps the audio track with `replaceTrack`.
 - Peers receive a clone of the microphone track. Muting disables the clone, so the original still shows the "you're talking while muted" reminder.
-- Bitrate is set on the video sender every few seconds: 2.5 Mbps with one other person, down to 1 Mbps with five.
+- Quality is set per person every 2 seconds (`quality.js`): a tier from that connection's stats (good, weak: 720p, poor: 360p at 15 fps, bad: audio only), the size that person shows you at, and a base bitrate of 2.5 Mbps with one other person down to 1 Mbps with five. It steps down after 4 s of worse numbers and up one step after 10 s of better ones (longer if it keeps falling back).
 
 ## Background cutout
 

@@ -40,6 +40,7 @@ function localRoom(roomId) {
       for (const [, p] of peers) for (const snd of p.pc.getSenders()) if (snd.track === oldTrack) snd.replaceTrack(newTrack);
     },
     connections: () => [...peers.values()].map((p) => p.pc),
+    peerConns: () => [...peers].map(([id, p]) => [id, p.pc]),
     makeAction(name) {
       const a = { onMessage: () => {}, send(data, opts = {}) { ch.postMessage({ k: "msg", from: selfId, to: opts.target || null, name, data }); } };
       actions[name] = a;
@@ -129,6 +130,7 @@ export function join(roomId, { local = false, turn = [] } = {}) {
     removeStream: (stream, opts) => room.removeStream(stream, opts),
     replaceTrack: (oldTrack, newTrack, opts) => room.replaceTrack(oldTrack, newTrack, opts),
     connections: () => Object.values(room.getPeers ? room.getPeers() : {}),
+    peerConns: () => Object.entries(room.getPeers ? room.getPeers() : {}),
     makeAction: (name) => room.makeAction(name),
     leave: () => room.leave(),
   };
