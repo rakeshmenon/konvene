@@ -29,7 +29,7 @@ Read `README.md`, `CONTRIBUTING.md` and `docs/architecture.md` first. This file 
 - Plain JavaScript modules, no framework, no TypeScript. Comments say why.
 - User-facing text: short, plain English, no em dashes.
 - Pages are static HTML in `public/`; `build.mjs` fills `{{REPO}}`, `{{OPERATOR}}`, `{{CREDIT}}`, `{{MAX}}`, `{{SITE}}` and `<!--demo-->` blocks, and swaps in `KONVENE_NAME` and `custom/logo.svg`.
-- Home page class names must not clash with the app's (the home page shares the stylesheet).
+- Home page class names must not clash with the app's (the home page shares the stylesheet). Scope home rules under `.home` and give them distinct names; a home `.live` once shrank every Effects preview.
 
 ## Commits
 

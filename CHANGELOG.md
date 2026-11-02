@@ -5,6 +5,7 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 ## Unreleased
 
 - Added: same-room detection. If another person's audio keeps following your room's sound (two devices in one room), a card suggests turning sound off on one device. Worked out on the device from loudness levels only (`src/roomecho.js`).
+- Fixed: the live previews in Effects (backgrounds, looks, lighting and faces) had shrunk to a dot in the corner of each tile, because the home page's pulsing dot used the same class name. The dot is renamed and the test checks the previews fill their tiles.
 - Fixed: on phones and narrow windows, live captions sit under the people instead of covering the bottom person's video and name.
 - Added: join without sound, for a second device in a room that is already in the call (no microphone, others muted), so the room doesn't echo. On the pre-join page and in the microphone menu; others see a "sound off" mark on that person.
 - Changed: the public demo now lives at https://konvene.app (Cloudflare Pages); the old Netlify address redirects there.

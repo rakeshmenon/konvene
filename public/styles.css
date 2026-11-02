@@ -595,9 +595,9 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 .orb-label { font: 600 15px var(--sans); fill: rgba(238, 243, 239, .55); letter-spacing: .01em; }
 .hero-copy { text-align: center; display: grid; justify-items: center; }
 .pill { display: inline-flex; align-items: center; gap: .55rem; margin: 0 0 1.6rem; padding: .4rem .9rem .4rem .75rem; border-radius: 999px; background: rgba(238, 243, 239, .06); box-shadow: inset 0 0 0 1px var(--hair-2); font-size: .86rem; font-weight: 500; color: var(--mist-2); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
-.live { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--live); }
-.live::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--live); opacity: .35; animation: live 2.4s ease-out infinite; }
-@keyframes live { 0% { transform: scale(.4); opacity: .5; } 100% { transform: scale(1.4); opacity: 0; } }
+.home .pulse-dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--live); }
+.home .pulse-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; background: var(--live); opacity: .35; animation: pulse-dot 2.4s ease-out infinite; }
+@keyframes pulse-dot { 0% { transform: scale(.4); opacity: .5; } 100% { transform: scale(1.4); opacity: 0; } }
 .hero h1 { font-size: clamp(3rem, 7.6vw, 6.8rem); line-height: .94; font-weight: 700; letter-spacing: -0.042em; max-width: 12ch; text-wrap: balance; text-shadow: 0 2px 40px color-mix(in srgb, var(--night) 60%, transparent); }
 .hero .lede { margin: 1.6rem 0 0; font-size: clamp(1.05rem, 1.4vw, 1.2rem); line-height: 1.6; color: var(--mist-2); max-width: 36rem; }
 .hero-cta { margin-top: 2.2rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .75rem; }

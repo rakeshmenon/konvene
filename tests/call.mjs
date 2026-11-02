@@ -76,6 +76,13 @@ await shot(a, `${OUT}/01c-home-full.png`, { fullPage: true });
 // pick effects
 await a.click("#lobby [data-open-fx]");
 await a.click('.opt[data-group="bg"][data-value="blur-light"]');
+// a live preview must fill its tile (a home page class once shrank them to a dot)
+ok(await a.waitForFunction(() => {
+  const c = document.querySelector('.opt[data-group="bg"] canvas.thumb.live');
+  if (!c) return false;
+  const r = c.getBoundingClientRect(), t = c.parentElement.getBoundingClientRect();
+  return r.width > t.width - 2 && r.height > t.height - 2;
+}, null, { timeout: 30000 }).then(() => true).catch(() => false), "effect previews fill their tiles");
 await a.click("#tab-look"); await a.click('.opt[data-group="look"][data-value="warm"]');
 await a.click("#tab-light"); await a.click('.opt[data-group="light"][data-value="studio"]');
 await a.click("#tab-face"); await a.click('.sw[data-group="lips"][data-value="rose"]');
