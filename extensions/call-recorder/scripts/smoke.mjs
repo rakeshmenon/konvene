@@ -31,7 +31,7 @@ writeFileSync(path.join(ext, "harness.html"), '<!doctype html><meta charset="utf
 const server = http.createServer((req, res) => {
   const ack = req.url === "/ack";
   res.setHeader("content-type", "text/html");
-  res.end(`<!doctype html><title>Konvene test</title><body>konvene ${req.url}<script>
+  res.end(`<!doctype html><title>Konvene test</title><body>konvene test page<script>
     ${ack ? `window.addEventListener("message", (e) => { const m = e.data; if (m && m.source === "konvene-recorder-extension") window.postMessage({ source: "konvene-page", recording: m.recording }, location.origin); });` : ""}
   </script>`);
 });
