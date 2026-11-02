@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Recorder library</title>
+<link rel="stylesheet" href="styles.css">
+<body>
+  <main class="page">
+    <div class="bar">
+      <a class="brand" href="library.html"><img src="icons/logo.svg" alt="">Call Recorder</a>
+      <a class="quiet-link" href="setup.html">Setup</a>
+    </div>
+    <div class="stack">
+      <h1>Your recordings</h1>
+      <p class="lead">Saved on this computer. Nothing is uploaded.</p>
+    </div>
+    <p class="notice err" id="error" hidden></p>
+    <section class="stack" id="list" aria-live="polite"></section>
+    <p class="empty card" id="empty" hidden>No recordings yet. Open a call tab, click the extension icon and press Start.</p>
+  </main>
+  <script src="library.js"></script>
+</body>
+</html>

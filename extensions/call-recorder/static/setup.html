@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Recorder setup</title>
+<link rel="stylesheet" href="styles.css">
+<body>
+  <main class="page">
+    <a class="brand" href="library.html"><img src="icons/logo.svg" alt="">Call Recorder</a>
+    <div class="stack">
+      <h1>Set up in two steps</h1>
+      <p class="lead">Recordings stay on this computer. Nothing is uploaded, and there is no account.</p>
+    </div>
+
+    <section class="card stack">
+      <div class="row"><span class="step-no">1</span><h2>Allow your microphone</h2></div>
+      <p class="muted">So your own voice is in the recording. The other people come from the call tab.</p>
+      <div class="row">
+        <button class="btn primary" id="allow-mic">Allow microphone</button>
+        <span class="chip" id="mic-status">Not allowed yet</span>
+      </div>
+      <label class="check">
+        <input type="checkbox" id="noise-toggle" checked>
+        <span>Reduce background noise from my microphone. Turn this off if your voice ever sounds wrong in a recording.</span>
+      </label>
+      <p class="notice err" id="mic-error" hidden></p>
+    </section>
+
+    <section class="card stack">
+      <div class="row"><span class="step-no">2</span><h2>Choose where recordings go</h2></div>
+      <p class="muted">Recordings are saved to <strong id="default-folder"></strong> by default. This needs no permission. Pick another folder if you prefer.</p>
+      <div class="row">
+        <button class="btn" id="pick-folder">Choose a folder</button>
+        <button class="btn" id="reset-folder" hidden>Use Downloads again</button>
+        <span class="chip" id="folder-status"></span>
+      </div>
+      <p class="faint">Chrome may ask you to allow a chosen folder again in a new browser session. If you do not, recordings go to Downloads instead.</p>
+      <p class="notice err" id="folder-error" hidden></p>
+    </section>
+
+    <a class="quiet-link" href="library.html">Open the recordings library</a>
+  </main>
+  <script src="setup.js"></script>
+</body>
+</html>
