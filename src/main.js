@@ -63,7 +63,7 @@ const state = {
   knocks: new Map(), // id -> the "wants to join" card
   denied: new Set(),
   // live captions (captions section below)
-  cc: { on: false, lang: null, can: false, self: null, remote: new Map(), lines: new Map(), sentAt: 0 },
+  cc: { on: false, lang: undefined, can: false, self: null, remote: new Map(), lines: new Map(), sentAt: 0 },
 };
 
 /* ---------------- small helpers ---------------- */
@@ -899,6 +899,7 @@ function joinRoom(code) {
     if (d.k === "st") {
       const turnedOn = !p.ccWant && d.want;
       p.ccWant = !!d.want; p.ccCan = !!d.can;
+      ccButton();
       if (turnedOn) toast(`${p.name || "Someone"} turned on captions`, 3000);
       ccUpdate();
     } else if (d.k === "tx" && state.cc.on) {
@@ -997,6 +998,7 @@ function dropPeer(peerId, quiet) {
   if (p && !quiet) { toast(`${p.name || "Someone"} left`); say(`${p.name || "Someone"} left the call`); }
   setRecBy(peerId, false);
   dismissEcho(peerId); dismissLeak(peerId);
+  setTimeout(ccButton, 0); // they may have been the one making captions
   if (p && p.screen) removeScreenTile(peerId);
   removeTile(peerId);
   if (state.recorder) { state.recorder.removeAudio(peerId); state.recorder.removeAudio("screen:" + peerId); }
@@ -1408,16 +1410,37 @@ function ccUpdate() {
   }
 }
 
+// The captions button says up front whether captions can work here: this browser makes them on
+// the device (desktop Google Chrome), or someone in the call can make their own. Otherwise it's
+// shown as unavailable, with the reason on hover and on click.
+function ccWhyNot() {
+  const cc = state.cc;
+  if (CAN_LOCAL && cc.lang !== null) return ""; // undefined: still checking, assume yes
+  if (state.inCall && [...state.peers.values()].some((p) => p.ccCan)) return "";
+  return CAN_LOCAL
+    ? "Live captions aren't available for your language in this browser yet."
+    : "Live captions need Google Chrome on a computer. This browser can't make them on your device.";
+}
+function ccButton() {
+  const btn = $("#cc-btn");
+  if (!btn) return;
+  const why = state.cc.on ? "" : ccWhyNot();
+  btn.setAttribute("aria-disabled", String(!!why));
+  btn.title = why || (CAN_LOCAL ? "Captions (c): made on the devices in the call" : "Captions (c): from people in the call whose browsers can make them");
+  btn.setAttribute("aria-label", why ? `Captions unavailable. ${why}` : "Captions");
+}
+
 async function toggleCaptions() {
   if (OFF("captions")) return;
   const cc = state.cc;
   const btn = $("#cc-btn");
+  if (!cc.on) { const why = ccWhyNot(); if (why) { toast(why, 6000); return; } }
   if (cc.on) {
     cc.on = false;
     btn.setAttribute("aria-pressed", "false");
     $("#captions", stageEl()).hidden = true;
     for (const id of [...cc.lines.keys()]) dropCaptions(id);
-    ccAnnounce(); ccUpdate();
+    ccAnnounce(); ccUpdate(); ccButton();
     say("Captions off");
     return;
   }
@@ -1432,12 +1455,16 @@ async function toggleCaptions() {
       cc.lang.ready = await installCaptions(cc.lang.lang);
     }
     cc.can = !!(cc.lang && cc.lang.ready);
-    if (!cc.can) toast("Captions couldn't be set up on this device. You'll still see captions from people whose browsers can make them.", 6000);
-    else toast("Captions on. They're made on the devices in the call, never on a server.", 4000);
+    if (!cc.can) {
+      const others = [...state.peers.values()].some((p) => p.ccCan);
+      toast(others ? "Chrome couldn't download its captions language pack, so your own voice isn't captioned. You'll still see captions from others." : "Chrome couldn't download its captions language pack. Check your connection and try again.", 7000);
+      if (!others) { cc.on = false; btn.setAttribute("aria-pressed", "false"); $("#captions", stageEl()).hidden = true; ccButton(); return; }
+    } else toast("Captions on. They're made on the devices in the call, never on a server.", 4000);
   } else {
-    toast("This browser can't make captions on your device. You'll see captions from people using Chrome on a computer.", 6000);
+    toast("Your own voice can't be captioned in this browser, but you'll see captions from people in the call using Chrome on a computer.", 6000);
   }
   if (!cc.on) return; // turned off while setting up
+  ccButton();
   ccAnnounce(); ccUpdate();
 }
 
@@ -1868,7 +1895,7 @@ function showCall() {
   for (const v of $$("#lobby-preview canvas")) v.remove();
   screen("call");
   // Chrome 120+: switching to another tab opens the call in picture-in-picture (needs the mic in use, which a call always has)
-  try { navigator.mediaSession.setActionHandler("enterpictureinpicture", () => state.pip.show()); } catch { /* not supported */ }
+  try { navigator.mediaSession.setActionHandler("enterpictureinpicture", () => { dlog("picture-in-picture: Chrome asked (tab switched)"); state.pip.show(); }); } catch { /* not supported */ }
   $("#room-code").textContent = state.code;
   $("#lock-toggle").checked = state.lock;
   hookMic();
@@ -2011,7 +2038,8 @@ async function init() {
   $("#share-btn").addEventListener("click", toggleShare);
   $("#cc-btn").addEventListener("click", toggleCaptions);
   // can this browser caption your voice on the device right now? (checks only, never downloads)
-  if (CAN_LOCAL) findLanguage().then((l) => { if (!state.cc.lang) state.cc.lang = l; state.cc.can = !!(l && l.ready); if (state.inCall) { ccAnnounce(); ccUpdate(); } });
+  if (CAN_LOCAL) findLanguage().then((l) => { if (!state.cc.lang) state.cc.lang = l; state.cc.can = !!(l && l.ready); ccButton(); if (state.inCall) { ccAnnounce(); ccUpdate(); } });
+  ccButton();
   $("#hand-btn").addEventListener("click", () => setHand(!state.hand));
   $("#rec-btn").addEventListener("click", toggleRecording);
   $("#save-rec").addEventListener("click", saveRecording);

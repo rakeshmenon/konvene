@@ -9,6 +9,8 @@
 //
 // Nothing here leaves the device; the window is part of this page.
 
+import { dlog } from "./debug.js";
+
 export const PIP_DOC = typeof window !== "undefined" && "documentPictureInPicture" in window;
 export const PIP_VIDEO = typeof document !== "undefined" && !!document.pictureInPictureEnabled;
 
@@ -29,14 +31,16 @@ export class Pip {
   async toggle() { if (this.open) this.close(); else await this.show(); }
 
   async show() {
-    if (this.win) return;
+    if (this.win) { dlog("picture-in-picture: already open"); return; }
     if (!PIP_DOC) {
       const v = this.ui.pickVideo();
-      if (v && PIP_VIDEO) { try { await v.requestPictureInPicture(); } catch { /* not allowed now */ } }
+      if (v && PIP_VIDEO) { try { await v.requestPictureInPicture(); } catch (e) { dlog(`picture-in-picture: browser said no (${e && e.name})`); } }
       return;
     }
     let w;
-    try { w = await window.documentPictureInPicture.requestWindow({ width: 480, height: 330 }); } catch { return; }
+    try { w = await window.documentPictureInPicture.requestWindow({ width: 480, height: 330 }); }
+    catch (e) { dlog(`picture-in-picture: Chrome said no (${e && e.name}: ${e && e.message})`); return; }
+    dlog("picture-in-picture: window open");
     this.win = w;
     const d = w.document;
     // same styles and icons as the page (the window's own address is about:blank, so use full URLs)

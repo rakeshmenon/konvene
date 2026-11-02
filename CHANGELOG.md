@@ -4,6 +4,8 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Changed: the captions button shows up front when captions can't work here (a browser that can't make them on the device, with nobody in the call who can): it's dimmed, says why on hover, and explains on click instead of failing after it. If Chrome can't download its language pack, it says so and suggests trying again.
+- Added: picture-in-picture steps in the `?debug` log (Chrome asked on a tab switch, window opened, or why it couldn't open).
 - Added: same-room detection. If another person's audio keeps following your room's sound (two devices in one room), a card suggests turning sound off on one device. Worked out on the device from loudness levels only (`src/roomecho.js`).
 - Added: speaker echo warning. If your microphone keeps picking up someone's voice from your own speakers (echo cancellation off or overwhelmed: loud or Bluetooth speakers, or Original sound), you see who can hear themselves and are asked to wear headphones or turn the volume down; they see why. Told apart from the same room by which way the sound runs. Tests check that Standard and Strong noise reduction keep the browser's echo cancellation on.
 - Fixed: the live previews in Effects (backgrounds, looks, lighting and faces) had shrunk to a dot in the corner of each tile, because the home page's pulsing dot used the same class name. The dot is renamed and the test checks the previews fill their tiles.

@@ -249,6 +249,12 @@ ok(await b.evaluate(() => { const s = window.__gr.pipe.micStream.getAudioTracks(
 const std = await setSound(b, "standard");
 ok(std.mode === "standard" && std.live && std.sent, "back to standard noise reduction");
 ok(await ecOn(b), "standard noise reduction keeps the browser's echo cancellation on");
+// captions in a browser that can't make them (plain Chromium), with nobody else making them:
+// the button says so up front instead of failing after a click
+const ccOff = await b.evaluate(() => { const x = document.querySelector("#cc-btn"); return { dis: x.getAttribute("aria-disabled"), title: x.title }; });
+ok(ccOff.dis === "true" && /Google Chrome on a computer/.test(ccOff.title), `captions button shows it's unavailable here, with the reason on hover ${JSON.stringify(ccOff)}`);
+await b.click("#cc-btn", { force: true });
+ok(await b.evaluate(() => document.querySelector("#cc-btn").getAttribute("aria-pressed") === "false" && /Google Chrome on a computer/.test(document.querySelector("#toast").textContent)), "clicking it explains why and doesn't turn captions on");
 
 // device menus on the mic and camera buttons
 await b.click('#call [data-menu="mic"]');
