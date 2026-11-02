@@ -10,6 +10,12 @@
 // and every second we check whether the last few seconds of one person's audio follow this
 // microphone, up to 800 ms behind. Only loudness numbers are kept, for 6 seconds, in memory;
 // no audio is stored or sent anywhere.
+//
+// The direction matters. In one room, a sound reaches this microphone first and arrives from
+// the other device a moment later. When this device's speakers leak into its own microphone
+// (loud speakers, echo cancellation off or overwhelmed), the other person's voice arrives first
+// and reaches this microphone after it: they hear themselves, but it isn't the same room, and
+// the fix is headphones or a lower volume here, so that gets its own message (onLeak).
 
 const FRAME_MS = 25;
 const KEEP = 240; // 6 s of loudness values
@@ -17,6 +23,10 @@ const WINDOW = 160; // compare the last 4 s
 const MAX_LAG = 32; // up to 800 ms behind
 const MATCH = 0.7; // how closely they must follow each other
 const NEEDED = 5; // matching checks (about 5 s of talking) before we say anything
+const LEAK_MATCH = 0.6; // their voice in this microphone, at a steady delay
+const LEAK_NEEDED = 4; // such checks (people take turns, so they come in bursts)
+const LEAK_GAP = 20; // checks (seconds) a run of leak checks may pause for
+const LEAK_MAX_LAG = 16; // speakers to microphone takes at most about 400 ms (Bluetooth included)
 
 // how closely `remote` follows `local`, at the best delay: Pearson correlation of the two
 // loudness curves, -1..1, with the delay in frames. null when there's too little sound to judge.
@@ -47,6 +57,19 @@ export function follow(local, remote, maxLag = MAX_LAG, minSpread = 0.08) {
   return { r: best, lag: bestLag };
 }
 
+// which way the sound runs between this microphone and someone's audio: the best match over
+// delays in both directions. lag >= 0: theirs follows this microphone, or arrives with it
+// (same room); lag < 0: this microphone follows theirs (their voice out of our speakers, which
+// always takes a moment: the speakers' and microphone's own delays).
+// Both arrays are the last WINDOW + maxLag values.
+export function direction(local, remote, maxLag = MAX_LAG) {
+  const old = (a) => a.slice(0, a.length - maxLag);
+  const fwd = follow(old(local), remote, maxLag), rev = follow(old(remote), local, maxLag);
+  if (!fwd && !rev) return null;
+  if (fwd && (!rev || fwd.r >= rev.r)) return { r: fwd.r, lag: fwd.lag };
+  return { r: rev.r, lag: -rev.lag };
+}
+
 const buf = new Float32Array(1024);
 function loudness(analyser) {
   analyser.getFloatTimeDomainData(buf);
@@ -60,8 +83,12 @@ export class RoomEcho {
   // mic(): this device's raw microphone analyser (or null)
   // others(): [[id, analyser], ...] for the people in the call
   // onMatch(id): called once per person whose audio keeps following this room
-  constructor({ mic, others, onMatch }) {
-    this.mic = mic; this.others = others; this.onMatch = onMatch;
+  // onLeak(id): called once (until again(id)) when this microphone keeps picking up that
+  //   person's voice from our speakers; counted only while canLeak() (our microphone is on)
+  constructor({ mic, others, onMatch, onLeak = () => {}, canLeak = () => true }) {
+    this.mic = mic; this.others = others; this.onMatch = onMatch; this.onLeak = onLeak; this.canLeak = canLeak;
+    this.leaks = new Map(); // id -> { lag, n, at }
+    this.leakDone = new Set();
     this.local = [];
     this.remote = new Map(); // id -> loudness values
     this.hits = new Map();
@@ -74,9 +101,12 @@ export class RoomEcho {
     this.timer = setInterval(() => this.sample(), FRAME_MS);
   }
 
-  stop() { clearInterval(this.timer); this.timer = 0; this.local = []; this.remote.clear(); this.hits.clear(); }
+  stop() { clearInterval(this.timer); this.timer = 0; this.local = []; this.remote.clear(); this.hits.clear(); this.leaks.clear(); this.leakDone.clear(); }
 
-  forget(id) { this.remote.delete(id); this.hits.delete(id); }
+  // listen for that person's voice in our speakers again (after the card was dismissed)
+  again(id) { this.leakDone.delete(id); this.leaks.delete(id); }
+
+  forget(id) { this.remote.delete(id); this.hits.delete(id); this.leaks.delete(id); }
 
   sample() {
     const m = this.mic();
@@ -84,7 +114,7 @@ export class RoomEcho {
     push(this.local, loudness(m));
     const seen = new Set();
     for (const [id, a] of this.others()) {
-      if (!a || this.done.has(id)) continue;
+      if (!a || (this.done.has(id) && this.leakDone.has(id))) continue;
       seen.add(id);
       if (!this.remote.has(id)) this.remote.set(id, []);
       push(this.remote.get(id), loudness(a));
@@ -95,18 +125,32 @@ export class RoomEcho {
 
   check() {
     if (this.local.length < WINDOW + MAX_LAG) return;
-    const local = this.local.slice(-(WINDOW + MAX_LAG), -MAX_LAG);
+    const local = this.local.slice(-(WINDOW + MAX_LAG));
     for (const [id, values] of this.remote) {
       if (values.length < WINDOW + MAX_LAG) continue;
-      const res = follow(local, values.slice(-(WINDOW + MAX_LAG)));
+      const res = direction(local, values.slice(-(WINDOW + MAX_LAG)));
+      if (res && res.lag < 0 && res.lag >= -LEAK_MAX_LAG && res.r >= LEAK_MATCH && !this.leakDone.has(id) && this.canLeak()) this.leakCheck(id, res.lag);
+      if (this.done.has(id)) continue;
       const h = this.hits.get(id) || 0;
-      if (res && res.r >= MATCH) this.hits.set(id, h + 1);
+      if (res && res.lag >= 0 && res.r >= MATCH) this.hits.set(id, h + 1);
       else if (res) this.hits.set(id, Math.max(0, h - 1));
       if ((this.hits.get(id) || 0) >= NEEDED) {
         this.done.add(id);
-        this.forget(id);
+        this.hits.delete(id);
         this.onMatch(id);
       }
+    }
+  }
+
+  // a speaker leak has one steady delay (the speakers' own); unrelated sounds don't
+  leakCheck(id, lag) {
+    const now = this.tick / 40, L = this.leaks.get(id);
+    if (L && Math.abs(lag - L.lag) <= 1 && now - L.at <= LEAK_GAP) { L.n++; L.at = now; }
+    else this.leaks.set(id, { lag, n: 1, at: now });
+    if (this.leaks.get(id).n >= LEAK_NEEDED) {
+      this.leakDone.add(id);
+      this.leaks.delete(id);
+      this.onLeak(id);
     }
   }
 }

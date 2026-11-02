@@ -32,6 +32,36 @@ if (process.env.FACE_VIDEO) args.push(`--use-file-for-fake-video-capture=${proce
   }
   ok(same === 30 && diff <= 1, `same-room detection: ${same}/30 same-room matches, ${diff}/30 false matches`);
   ok(follow(Array(192).fill(-3.5), Array(192).fill(-3.5)) === null, "silence is never called a match");
+  // which way it runs: one room (theirs follows this microphone) vs our speakers leaking their
+  // voice into this microphone (this microphone follows theirs)
+  const { direction } = await import("../src/roomecho.js");
+  let room = 0, leak = 0, wrong = 0;
+  for (let t = 0; t < 30; t++) {
+    const mine = speech(192), theirs = speech(192), lag = 2 + Math.floor(rnd() * 20), out = 1 + Math.floor(rnd() * 8);
+    const fromRoom = mine.map((v, i) => (i >= lag ? mine[i - lag] - 0.6 + (rnd() - 0.5) * 0.4 : -3.5));
+    const leaked = theirs.map((v, i) => (i >= out ? theirs[i - out] - 0.5 + (rnd() - 0.5) * 0.4 : -3.5));
+    const r1 = direction(mine, fromRoom), r2 = direction(leaked, theirs), r3 = direction(mine, theirs);
+    if (r1 && r1.r >= 0.7 && r1.lag === lag) room++;
+    if (r2 && r2.r >= 0.6 && r2.lag === -out) leak++;
+    if (r3 && r3.r >= 0.6) wrong++;
+  }
+  ok(room === 30 && leak === 30, `echo direction: ${room}/30 same room, ${leak}/30 speaker leaks (${wrong}/30 unrelated pairs come close; one check alone isn't enough)`);
+  // the real detector, fed loudness values: an hour of two unrelated people never warns;
+  // our speakers leaking their voice warns about the leak, not "same room"
+  const { RoomEcho } = await import("../src/roomecho.js");
+  const feed = (mine, theirs) => {
+    const fake = (arr) => ({ i: 0, fftSize: 64, getFloatTimeDomainData(b) { b.fill(10 ** arr[this.i]); } });
+    const m = fake(mine), t = fake(theirs), seen = { match: 0, leak: 0 };
+    const e = new RoomEcho({ mic: () => m, others: () => [["x", t]], onMatch: () => seen.match++, onLeak: () => { seen.leak++; e.again("x"); } });
+    for (let i = 0; i < mine.length; i++) { m.i = t.i = i; e.sample(); }
+    return seen;
+  };
+  const HOUR = 40 * 3600;
+  const quietHour = feed(speech(HOUR), speech(HOUR));
+  ok(quietHour.match === 0 && quietHour.leak === 0, `an hour of two unrelated people: no echo warnings ${JSON.stringify(quietHour)}`);
+  const them = speech(40 * 120), leakyMe = speech(40 * 120).map((v, i) => (i >= 3 ? Math.max(v, them[i - 3] - 0.8) : v));
+  const leaky = feed(leakyMe, them);
+  ok(leaky.leak >= 1 && leaky.match === 0, `their voice leaking from our speakers is called a leak, not the same room ${JSON.stringify(leaky)}`);
 }
 
 const browser = await chromium.launch({ args });
@@ -210,12 +240,15 @@ const audioIn = (p) => p.evaluate(async () => { let n = 0; for (const pc of wind
 const setSound = (p, v) => p.evaluate(async (v) => { const sel = document.querySelector('#call-devices select[data-noise]'); sel.value = v; sel.dispatchEvent(new Event("change", { bubbles: true })); await new Promise((r) => setTimeout(r, 2000)); const t = window.__gr.pipe.sendTrack; return { mode: window.__gr.pipe.noise, failed: !!window.__gr.pipe.noiseFailed, rnnoise: !!window.__gr.pipe.cleanup, live: t.readyState === "live", tracks: window.__gr.pipe.stream.getAudioTracks().length, sent: window.__gr.room.connections().some((pc) => pc.getSenders().some((x) => x.track === t)) }; }, v);
 const strong = await setSound(b, "strong");
 const heard0 = await audioIn(a); await a.waitForTimeout(1500); const heard1 = await audioIn(a);
+const ecOn = (p) => p.evaluate(() => { const s = window.__gr.pipe.micStream.getAudioTracks()[0].getSettings(); return s.echoCancellation === true; });
+ok(await ecOn(b), "strong noise reduction keeps the browser's echo cancellation on (your speakers don't echo back to others)");
 ok(strong.mode === "strong" && !strong.failed && strong.rnnoise && strong.live && strong.tracks === 1 && strong.sent && heard1 > heard0, `strong noise reduction runs on the device and the call still hears you ${JSON.stringify({ ...strong, bytes: heard1 - heard0 })}`);
 const orig = await setSound(b, "off");
 ok(orig.mode === "off" && !orig.rnnoise && orig.live && orig.sent, `original sound turns processing off ${JSON.stringify(orig)}`);
 ok(await b.evaluate(() => { const s = window.__gr.pipe.micStream.getAudioTracks()[0].getSettings(); return s.noiseSuppression !== true && s.echoCancellation !== true; }), "original sound asks the browser for no echo or noise processing");
 const std = await setSound(b, "standard");
 ok(std.mode === "standard" && std.live && std.sent, "back to standard noise reduction");
+ok(await ecOn(b), "standard noise reduction keeps the browser's echo cancellation on");
 
 // device menus on the mic and camera buttons
 await b.click('#call [data-menu="mic"]');

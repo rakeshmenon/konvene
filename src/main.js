@@ -33,6 +33,7 @@ const state = {
   peers: new Map(), // id -> { id, name, mic, cam, hand, stream, video, tile, analyser, screen: { id, stream, video, tile } }
   mic: false, // camera and microphone are off until you turn them on
   echoCards: new Map(), // id -> "same room?" card
+  leakCards: new Map(), // id -> "they hear themselves from your speakers" card
   roomEcho: null,
   quiet: false, // sound off on this device: no microphone, others' audio muted (a second device in the same room)
   cam: false,
@@ -876,8 +877,12 @@ function joinRoom(code) {
     const p = state.peers.get(peerId);
     if (!p) return;
     const raised = !p.hand && d.hand;
-    p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.quiet = !!d.quiet;
-    if (p.quiet) dismissEcho(peerId);
+    const leaking = !p.leak && d.leak;
+    p.mic = d.mic !== false; p.cam = d.cam !== false; p.hand = !!d.hand; p.away = !!d.away; p.quiet = !!d.quiet; p.leak = !!d.leak;
+    if (p.quiet) { dismissEcho(peerId); dismissLeak(peerId); }
+    // their speakers send our voice back: they've been told, and it isn't "the same room"
+    if (p.leak) { p.leakAt = performance.now(); dismissEcho(peerId); }
+    if (leaking) toast(`If you hear yourself, it's ${p.name || "someone"}'s speakers. They've been asked to wear headphones or turn the volume down.`, 7000);
     if (raised) { toast(`${p.name || "Someone"} raised their hand`); say(`${p.name || "Someone"} raised their hand`); }
     renderTile(peerId);
   });
@@ -929,7 +934,7 @@ function joinRoom(code) {
     if (w && !state.peers.has(peerId)) { (w.early || (w.early = [])).push([stream, meta]); return; }
     gotStream(stream, peerId, meta);
   };
-  state.broadcastStatus = () => state.actions && state.actions.status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, quiet: state.quiet });
+  state.broadcastStatus = () => state.actions && state.actions.status.send({ mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, quiet: state.quiet, leak: state.leakCards.size > 0 });
 }
 
 // Adding video makes the connection renegotiate. If both people do it at the same moment
@@ -991,7 +996,7 @@ function dropPeer(peerId, quiet) {
   const p = state.peers.get(peerId);
   if (p && !quiet) { toast(`${p.name || "Someone"} left`); say(`${p.name || "Someone"} left the call`); }
   setRecBy(peerId, false);
-  dismissEcho(peerId);
+  dismissEcho(peerId); dismissLeak(peerId);
   if (p && p.screen) removeScreenTile(peerId);
   removeTile(peerId);
   if (state.recorder) { state.recorder.removeAudio(peerId); state.recorder.removeAudio("screen:" + peerId); }
@@ -1075,7 +1080,9 @@ function becomeIn(how) {
     state.roomEcho = new RoomEcho({
       mic: () => (state.quiet ? null : micAnalyser),
       others: () => [...state.peers].filter(([, p]) => !p.quiet && p.analyser).map(([id, p]) => [id, p.analyser]),
-      onMatch: sameRoom,
+      onMatch: (id) => setTimeout(() => sameRoom(id), 3000), // their own leak notice may be on its way
+      onLeak: speakerLeak,
+      canLeak: () => state.mic && !state.quiet, // a muted microphone sends no echo
     });
   }
   state.roomEcho.start();
@@ -1086,6 +1093,7 @@ function becomeIn(how) {
 function sameRoom(id) {
   const p = state.peers.get(id);
   if (!p || p.quiet || state.quiet || !state.inCall || state.echoCards.has(id)) return;
+  if (p.leakAt && performance.now() - p.leakAt < 5 * 60e3) return; // it's their speakers, not this room
   dlog(`${id} sounds like this room`);
   const card = el("div", "knock echo-card");
   card.setAttribute("role", "alert");
@@ -1106,6 +1114,38 @@ function dismissEcho(id) {
   const c = state.echoCards.get(id);
   if (c) c.remove();
   state.echoCards.delete(id);
+}
+
+// this microphone keeps picking up someone's voice from this device's speakers (echo
+// cancellation off or overwhelmed), so they hear themselves. Only this device can fix it.
+function speakerLeak(id) {
+  const p = state.peers.get(id);
+  if (!p || state.quiet || !state.mic || !state.inCall || state.leakCards.has(id)) return;
+  dlog(`${id}'s voice is coming back through this microphone`);
+  const card = el("div", "knock echo-card");
+  card.setAttribute("role", "alert");
+  const msg = el("p");
+  msg.append(el("strong", null, p.name || "Someone"), document.createTextNode(" can hear their own voice: your microphone is picking up your speakers. Wear headphones or turn your volume down."));
+  const mute = el("button", "btn secondary small", "Mute me");
+  const ok = el("button", "btn primary small", "Got it");
+  mute.type = ok.type = "button";
+  mute.addEventListener("click", () => { dismissLeak(id); setMic(false); });
+  ok.addEventListener("click", () => dismissLeak(id, true));
+  card.append(msg, el("span", "knock-btns"));
+  card.lastChild.append(mute, ok);
+  $("#knocks", stageEl()).append(card);
+  state.leakCards.set(id, card);
+  if (state.inCall) state.broadcastStatus();
+  say(`${p.name || "Someone"} can hear their own voice. Your microphone is picking up your speakers.`);
+}
+// listen again later: if it still leaks after "Got it", say so again in a minute or two
+function dismissLeak(id, listenAgain = false) {
+  const c = state.leakCards.get(id);
+  if (!c) return;
+  c.remove();
+  state.leakCards.delete(id);
+  if (state.inCall && state.broadcastStatus) state.broadcastStatus();
+  if (listenAgain) setTimeout(() => { if (state.roomEcho) state.roomEcho.again(id); }, 60e3);
 }
 
 function setLock(on, age = 0, announce = true) {
@@ -1203,6 +1243,7 @@ function exitRoom() {
   for (const id of [...state.peers.keys()]) dropPeer(id, true);
   for (const id of [...state.knocks.keys()]) dismissKnock(id);
   for (const id of [...state.echoCards.keys()]) dismissEcho(id);
+  for (const id of [...state.leakCards.keys()]) dismissLeak(id);
   if (state.roomEcho) state.roomEcho.stop();
   state.pending.clear(); state.conn.clear();
   state.room = null; state.actions = null; state.quality = null;
@@ -1568,6 +1609,7 @@ function setQuiet(on) {
   if ($("#quiet")) $("#quiet").checked = on;
   if (on && state.mic) setMic(false);
   if (on) for (const id of [...state.echoCards.keys()]) dismissEcho(id);
+  if (on) for (const id of [...state.leakCards.keys()]) dismissLeak(id);
   for (const v of $$("video[data-remote]", stageEl())) v.muted = on;
   $$('[data-toggle="mic"]').forEach((b) => { b.title = on ? "Sound is off on this device" : "Microphone"; });
   if (state.inCall) { renderTile(state.selfId); state.broadcastStatus(); }
@@ -1585,6 +1627,7 @@ async function setMic(on) {
   state.mic = on;
   state.pipe.setMic(on);
   if (state.me) state.me.mic = on;
+  if (!on) for (const id of [...state.leakCards.keys()]) dismissLeak(id, true); // muted: no echo to send
   $$('[data-toggle="mic"]').forEach((b) => { b.setAttribute("aria-pressed", String(on)); b.setAttribute("aria-label", on ? "Turn off microphone" : "Turn on microphone"); $("use", b).setAttribute("href", on ? "#i-mic" : "#i-mic-off"); b.classList.toggle("off", !on); });
   if (state.inCall) { renderTile(state.selfId); state.broadcastStatus(); }
   if (state.pip) state.pip.sync();
