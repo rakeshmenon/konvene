@@ -11,7 +11,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Konvene">
 <meta property="og:title" content="Konvene: private video calls, free in your browser">
-<meta property="og:description" content="Video calls that go straight from your browser to theirs. No company in the middle, no account, nothing kept.">
+<meta property="og:description" content="Encrypted video calls, straight from your browser to theirs. No account, nothing kept.">
 <meta property="og:image" content="{{SITE}}/og-image.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -105,7 +105,7 @@
       <div class="wrap hero-copy">
         <p class="pill"><span class="pulse-dot" aria-hidden="true"></span>Free and open source. No account needed.</p>
         <h1 id="pj-title">The space between you stays yours.</h1>
-        <p class="lede">Video calls that go straight from your browser to theirs. No company in the middle, nothing kept. Effects, captions and noise reduction are worked out on your own device.</p>
+        <p class="lede">Video calls that go straight from your browser to theirs, encrypted so no company can watch or listen. Nothing kept. Effects, captions and noise reduction are worked out on your own device.</p>
         <div class="hero-cta">
           <button class="btn brass big start-btn" type="button" id="start-btn">Start a private call</button>
           <form id="code-form" class="code-form" role="search" autocomplete="off">
@@ -142,8 +142,8 @@
     <section class="wrap private" id="private" aria-labelledby="private-title">
       <div class="private-head">
         <div>
-          <h2 id="private-title">Your call goes to the people in it. Nowhere else.</h2>
-          <p class="section-lede">Most video apps send your call through their servers. Konvene connects browsers directly and encrypts everything between them, so there's no middle to trust.</p>
+          <h2 id="private-title">Only the people in your call can see or hear it.</h2>
+          <p class="section-lede">Most video apps send your call through their servers, where it can be decoded. Konvene connects browsers directly and encrypts everything between them. A few services help the call start, and on some networks one passes it along, but none of them can see or hear it.</p>
         </div>
         <figure class="lanes" aria-label="Most video apps: your call goes from you, through their servers, to the other person. Konvene: your call goes straight from you to them, encrypted.">
           <div class="lane is-them" aria-hidden="true">
@@ -167,14 +167,20 @@
         </figure>
       </div>
       <dl class="facts">
-        <div><dt>Straight to them</dt><dd>Video, voice, screens and chat travel directly between your browsers, encrypted the whole way.</dd></div>
+        <div><dt>Straight to them</dt><dd>Video, voice, screens and chat travel directly between your browsers, encrypted the whole way. On a few strict networks they pass through a relay that can't see or hear them.</dd></div>
         <div><dt>Nothing kept</dt><dd>No server records your call or your messages. Recordings stay on the device that made them.</dd></div>
         <div><dt>No account</dt><dd>No email, phone number or password. Type a name and start talking.</dd></div>
         <div><dt>No tracking</dt><dd>No cookies, no analytics, no ads. Nothing about you is collected, so nothing can be sold.</dd></div>
         <div><dt>Your face stays home</dt><dd>Blur, lighting and touch-up are worked out on your own device. Your camera is never uploaded.</dd></div>
         <div><dt>Recording is never secret</dt><dd>Recording asks first and shows everyone the name of the person recording.</dd></div>
       </dl>
-      <p class="fine-print">As on any video call, the people you talk to and the public services that help browsers find each other can see your IP address. <a href="/privacy.html">Read the privacy details</a></p>
+      <h3 class="helpers-title">Who else helps, and what they can see</h3>
+      <dl class="facts helpers">
+        <div><dt>This website</dt><dd>Sends your browser the Konvene app<!--demo--> from Cloudflare's network<!--/demo-->. It sees which call link was opened, never the call itself.</dd></div>
+        <div><dt>Connection helpers</dt><dd>Public Nostr relays pass along a scrambled handshake, and STUN servers from Google and Cloudflare tell your browser its own address. They see your IP address, not your call.</dd></div>
+        <div><dt>A relay, on some networks</dt><dd>Strict offices, hotels and some mobile networks block direct calls. There, the call passes through a relay<!--demo--> run by Cloudflare<!--/demo-->, still encrypted. It can't see or hear it.</dd></div>
+      </dl>
+      <p class="fine-print">As on any video call, the people you talk to can see your IP address too. <a href="/privacy.html">Read the privacy details</a>, with exactly what each service handles.</p>
     </section>
 
     <section class="wrap features" id="features" aria-labelledby="features-title">
@@ -263,6 +269,7 @@
       <div class="faq-list">
         <details><summary>Is Konvene really free?</summary><p>Yes. There's no paid plan and no ads. Calls go straight between browsers, so they cost almost nothing to run.</p></details>
         <details><summary>Can anyone else see or hear my call?</summary><p>Only the people in it. Video, voice, screens and chat go directly between your browsers, encrypted. On some strict networks the call is passed through a relay, still encrypted, and the relay can't see or hear it.</p></details>
+        <details><summary>Are any servers involved?</summary><p>Yes, but none of them carry your call in a form they can read. This website sends you the app, public relays help browsers find each other, and on some strict networks a relay passes the call along, still encrypted. The <a href="/privacy.html">privacy page</a> lists each one and what it can see.</p></details>
         <details><summary>Do I need an account or an app?</summary><p>No. Open the link, type a name and join. Konvene works in Chrome, Edge, Safari and Firefox, on computers and phones.</p></details>
         <details><summary>How many people can join?</summary><p>Up to {{MAX}}. Each browser sends its video to each other person, which keeps the call private and limits its size.</p></details>
         <details><summary>What do people in the call learn about me?</summary><p>The name you type, and, as on any video call, your IP address.</p></details>

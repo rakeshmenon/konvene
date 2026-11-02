@@ -697,6 +697,8 @@ kbd { font: inherit; font-size: .78rem; padding: .05rem .35rem; border-radius: 5
 .facts div, .source-points div { padding-top: 1rem; border-top: 1px solid var(--hair-2); }
 .facts dt, .source-points dt { font-weight: 650; font-size: 1.02rem; color: var(--mist); margin-bottom: .35rem; }
 .facts dd, .source-points dd { margin: 0; color: var(--mist-2); line-height: 1.55; font-size: .95rem; }
+.home .helpers-title { margin: clamp(2.8rem, 6vh, 3.8rem) 0 0; font-size: 1.15rem; font-weight: 650; color: var(--mist); letter-spacing: -0.01em; }
+.home .facts.helpers { margin-top: 1.3rem; }
 .fine-print { margin: 2.6rem 0 0; font-size: .88rem; color: var(--mist-3); max-width: 46rem; line-height: 1.55; }
 .fine-print a { color: var(--mist-2); }
 

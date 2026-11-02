@@ -6,7 +6,7 @@
 
 **The space between you stays yours.**
 
-Free, private video calls in the browser. Peer to peer, no account, no server in the middle,
+Free, private video calls in the browser. Peer to peer and encrypted, no account, nothing kept on a server,
 and every effect, caption and bit of noise reduction worked out on your own device.
 
 [Live demo](https://konvene.app) · [Run your own](#run-your-own) · [Customise it](docs/customising.md) · [How it works](docs/architecture.md) · [Contributing](CONTRIBUTING.md)
@@ -25,7 +25,7 @@ and every effect, caption and bit of noise reduction worked out on your own devi
 
 Most video apps promise to look after your data. Konvene is built so there is nothing to look after.
 
-- **Straight to them.** Video, voice, screens and chat travel directly between browsers over WebRTC, encrypted the whole way.
+- **Straight to them.** Video, voice, screens and chat travel directly between browsers over WebRTC, encrypted the whole way. On a few strict networks they pass through a TURN relay, still encrypted.
 - **Nothing kept.** No server records your call or your chat. Recordings are made and saved on the recorder's own device.
 - **No account.** Type a name, share the link, start talking. Add a passcode, or let people in yourself.
 - **No tracking.** No cookies, no analytics, no ads. The build strips MediaPipe's usage logging, and the page's Content Security Policy blocks it too.
@@ -117,7 +117,7 @@ Your logo, icons, link preview picture and colours go in a `custom/` folder, wit
         ─► WebRTC, directly to each person in the call (Trystero, handshake over public Nostr relays)
 ```
 
-There is no Konvene server in a call. The host serves static files and, optionally, one small function that hands out relay passwords. Details, including how the background cutout is cleaned up, are in [docs/architecture.md](docs/architecture.md).
+No server can see or hear a call: media goes browser to browser, encrypted. Servers only help it start. The host serves static files and, optionally, one small function that hands out relay passwords; public Nostr relays carry the encrypted handshake; public STUN servers (Google, Cloudflare) help browsers find a route; and on strict networks a TURN relay forwards the call, still encrypted. The [privacy page](public/privacy.html) lists what each one sees. Details, including how the background cutout is cleaned up, are in [docs/architecture.md](docs/architecture.md).
 
 ## Project layout
 

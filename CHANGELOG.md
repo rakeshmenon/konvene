@@ -4,6 +4,7 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Changed: the home page, privacy page and README no longer say there is no server or company in the middle. They say what is true: only the people in a call can see or hear it, and a few services help it start (the website host, public Nostr relays, STUN servers) and, on strict networks, an encrypted relay passes it along. A new "Who else helps, and what they can see" list on the home page names each one; a new question answers "Are any servers involved?"; the privacy page explains that without a passcode the handshake's key comes from the call code.
 - Changed: the captions button shows up front when captions can't work here (a browser that can't make them on the device, with nobody in the call who can): it's dimmed, says why on hover, and explains on click instead of failing after it. If Chrome can't download its language pack, it says so and suggests trying again.
 - Added: picture-in-picture steps in the `?debug` log (Chrome asked on a tab switch, window opened, or why it couldn't open).
 - Added: same-room detection. If another person's audio keeps following your room's sound (two devices in one room), a card suggests turning sound off on one device. Worked out on the device from loudness levels only (`src/roomecho.js`).
