@@ -3,7 +3,8 @@ import js from "@eslint/js";
 import globals from "globals";
 
 export default [
-  { ignores: ["dist/", "node_modules/", "test-results/", "shots/"] },
+  // extensions/ are separate packages with their own tests and browser globals (see extensions/call-recorder/README.md)
+  { ignores: ["dist/", "node_modules/", "test-results/", "shots/", "extensions/"] },
   js.configs.recommended,
   {
     files: ["src/**/*.js"],

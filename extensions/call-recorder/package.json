@@ -1,0 +1,32 @@
+{
+  "name": "call-recorder-extension",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Chrome extension that records a WebRTC call tab and your microphone on your own device. No server.",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "build": "node build.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "check": "npm run test && npm run build && npm run validate",
+    "build:dev": "node build.mjs --dev",
+    "validate": "node scripts/validate.mjs",
+    "package": "node scripts/package.mjs",
+    "store:assets": "node scripts/store-assets.mjs",
+    "probe:audio": "node scripts/audio-probe.mjs",
+    "quality": "python3 scripts/audio-quality.py"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "5.3.0",
+    "@fontsource-variable/instrument-sans": "5.3.0",
+    "@sapphi-red/web-noise-suppressor": "0.4.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "vitest": "5.0.5"
+  }
+}

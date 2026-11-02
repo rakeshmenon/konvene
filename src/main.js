@@ -49,6 +49,7 @@ const state = {
   audio: null,
   recorder: null,
   recBy: new Map(),
+  extRecording: false, // the Konvene recorder browser extension is recording this tab
   actions: null,
   inCall: false,
   // who can get in (door section below)
@@ -771,7 +772,7 @@ function newVideo(muted) {
 }
 
 function myStatus() {
-  return { name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, quiet: state.quiet, rec: !!(state.recorder && state.recorder.recording), share: state.screen ? state.screen.id : null };
+  return { name: state.name, mic: state.mic, cam: state.cam, hand: state.hand, away: state.pipe.away, quiet: state.quiet, rec: !!(state.recorder && state.recorder.recording) || state.extRecording, share: state.screen ? state.screen.id : null };
 }
 
 function joinRoom(code) {
@@ -1346,6 +1347,22 @@ function setRecBy(id, on) {
   if (on && id !== state.selfId) say(`${nameOf(id)} started recording`);
 }
 
+// The Konvene recorder browser extension tells this page when it starts or stops recording the call tab.
+// We show the same named badge as for our own recorder, and answer, so the extension never records unseen.
+function setExtensionRecording(on) {
+  state.extRecording = on;
+  const recording = on || !!(state.recorder && state.recorder.recording);
+  setRecBy(state.selfId, recording);
+  if (state.actions) state.actions.rec.send({ on: recording });
+}
+window.addEventListener("message", (e) => {
+  if (e.source !== window || e.origin !== location.origin) return;
+  const m = e.data;
+  if (!m || m.source !== "konvene-recorder-extension" || typeof m.recording !== "boolean") return;
+  setExtensionRecording(m.recording);
+  window.postMessage({ source: "konvene-page", recording: m.recording }, location.origin);
+});
+
 /* ---------------- live captions (captions.js) ----------------
    Made on the devices in the call: each person whose browser can do it captions their own voice
    and sends the words only to the people who turned captions on. Anyone whose browser can't is
@@ -1691,8 +1708,8 @@ async function toggleRecording() {
     $("#rec-btn").setAttribute("aria-pressed", "false");
     $("#rec-btn").setAttribute("aria-label", "Record");
     $("#rec-time").hidden = true;
-    setRecBy(state.selfId, false);
-    state.actions.rec.send({ on: false });
+    setRecBy(state.selfId, state.extRecording);
+    state.actions.rec.send({ on: state.extRecording });
     if (blob && blob.size) {
       state.lastRecording = blob;
       const mb = (blob.size / 1e6).toFixed(1);

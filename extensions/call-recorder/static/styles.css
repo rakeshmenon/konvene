@@ -1,0 +1,107 @@
+/* Call Recorder wears Konvene's brand: marble white, bottle green, a little brass.
+   The tokens, fonts and component shapes below mirror Konvene's public/styles.css so the two feel like one product.
+   Instrument Sans and Bricolage Grotesque: SIL Open Font License 1.1, notices in THIRD_PARTY_NOTICES.txt */
+
+@font-face { font-family: "Instrument Sans"; src: url("fonts/instrument-sans-latin-wdth-normal.woff2") format("woff2"); font-weight: 400 700; font-stretch: 75% 100%; font-style: normal; font-display: swap; }
+@font-face { font-family: "Bricolage Grotesque"; src: url("fonts/bricolage-grotesque-latin-opsz-normal.woff2") format("woff2"); font-weight: 200 800; font-style: normal; font-display: swap; }
+
+:root {
+  --bg: #f3f3ef;
+  --surface: #ffffff;
+  --surface-2: #ecede8;
+  --line: rgba(16, 38, 31, 0.1);
+  --line-2: rgba(16, 38, 31, 0.18);
+  --ink: #10261f;
+  --ink-2: #4a5c55;
+  --ink-3: #7c8a84;
+  --accent: #14523d;
+  --accent-strong: #0f4231;
+  --accent-soft: rgba(20, 82, 61, 0.1);
+  --rec: #e5484d;
+  --brass: #e0a93c;
+  --sans: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display: "Bricolage Grotesque", var(--sans);
+  --shadow: 0 1px 2px rgba(16, 38, 31, .04), 0 8px 24px -8px rgba(16, 38, 31, .12);
+  color-scheme: light;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--sans); font-size: 15px; line-height: 1.5; letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased; font-feature-settings: "kern";
+}
+h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.02em; }
+h1, h2 { font-family: var(--display); font-variation-settings: "opsz" 48; }
+p { margin: 0; }
+button { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
+
+/* ---------- layout ---------- */
+.page { max-width: 760px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; display: grid; gap: 1.25rem; }
+.popup { width: 340px; padding: 1rem; display: grid; gap: .85rem; }
+.bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.stack { display: grid; gap: .6rem; }
+.row { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.spread { justify-content: space-between; }
+
+/* ---------- brand ---------- */
+.brand { display: inline-flex; align-items: center; gap: .55rem; color: var(--ink); text-decoration: none; font-family: var(--display); font-weight: 700; font-size: 1.15rem; letter-spacing: -0.035em; }
+.brand img { width: 26px; height: 26px; }
+.quiet-link { color: var(--ink-2); text-decoration: none; font-size: .9rem; }
+.quiet-link:hover { color: var(--ink); }
+
+/* ---------- cards, text ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 1rem 1.1rem; box-shadow: var(--shadow); }
+.muted { color: var(--ink-2); font-size: .9rem; }
+.faint { color: var(--ink-3); font-size: .82rem; }
+.title { font-weight: 600; letter-spacing: -0.01em; }
+.clip { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lead { color: var(--ink-2); max-width: 54ch; }
+
+/* ---------- buttons ---------- */
+.btn {
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  height: 44px; padding: 0 1.25rem; border-radius: 12px; font-weight: 500; font-size: .95rem;
+  border: 1px solid var(--line-2); background: var(--surface); color: var(--ink);
+  transition: background .15s, border-color .15s, transform .15s, box-shadow .15s;
+}
+.btn:hover { background: var(--surface-2); }
+.btn:active { transform: translateY(1px); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; transform: none; }
+.btn.primary { color: #fff; border-color: transparent; background: var(--accent-strong); box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 8px 20px -8px rgba(15, 66, 49, .45); }
+.btn.primary:hover:not([disabled]) { background: #0b3528; }
+.btn.record { color: #fff; border-color: transparent; background: var(--rec); }
+.btn.record:hover:not([disabled]) { background: #d23c41; }
+.btn.small { height: 34px; padding: 0 .85rem; font-size: .85rem; border-radius: 10px; }
+.btn.danger { color: var(--rec); }
+.btn.wide { width: 100%; }
+
+/* ---------- status ---------- */
+.chip { display: inline-flex; align-items: center; height: 24px; padding: 0 .6rem; border-radius: 999px; font-size: .78rem; font-weight: 500; background: var(--surface-2); color: var(--ink-2); }
+.chip.ok { background: var(--accent-soft); color: var(--accent-strong); }
+.chip.warn { background: rgba(224, 169, 60, .18); color: #7a5a12; }
+.chip.err { background: rgba(229, 72, 77, .12); color: #a8262b; }
+.rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rec); flex: none; animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 5px rgba(229, 72, 77, .18); } }
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
+.timer { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 1.6rem; letter-spacing: -0.02em; }
+.notice { border-radius: 12px; padding: .65rem .85rem; font-size: .88rem; background: var(--accent-soft); color: var(--accent-strong); }
+.notice.err { background: rgba(229, 72, 77, .1); color: #a8262b; }
+.notice.warn { background: rgba(224, 169, 60, .16); color: #6a4d0f; }
+.check { display: flex; gap: .6rem; align-items: flex-start; font-size: .9rem; cursor: pointer; }
+.check small { color: var(--ink-2); font-size: .8rem; }
+.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--accent); flex: none; }
+
+/* ---------- level meters ---------- */
+.meter-row { display: grid; grid-template-columns: 5.5rem 1fr; align-items: center; gap: .6rem; font-size: .85rem; color: var(--ink-2); }
+.meter { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width .15s var(--ease, ease-out); }
+
+/* ---------- library ---------- */
+.rec-item { display: grid; gap: .55rem; }
+.meta { display: flex; flex-wrap: wrap; gap: .25rem 1rem; color: var(--ink-2); font-size: .88rem; font-variant-numeric: tabular-nums; }
+.empty { text-align: center; padding: 2.5rem 1rem; color: var(--ink-2); }
+.step-no { width: 28px; height: 28px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; font-size: .85rem; flex: none; }

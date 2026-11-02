@@ -1,5 +1,8 @@
 Third-party software, models and fonts used by Konvene
 
+The optional call recorder extension (extensions/call-recorder) is a separate package and lists its own
+third-party software and fonts in extensions/call-recorder/THIRD_PARTY_NOTICES.txt.
+
 ================================================================
 trystero 0.26.0
 ================================================================

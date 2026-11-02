@@ -4,6 +4,8 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Added: the Konvene recorder browser extension (`extensions/call-recorder`). It records the call tab and your microphone to a file on your own computer, with noise reduction, and adds the sound of any screen or tab shared in the call. Nothing is uploaded. It is a separate package: `npm install` and `npm run check` inside that folder.
+- Added: the page shows the named recording badge to everyone when the Konvene recorder browser extension records the call tab, and tells the extension the badge is showing before it starts.
 - Changed: the home page, privacy page and README no longer say there is no server or company in the middle. They say what is true: only the people in a call can see or hear it, and a few services help it start (the website host, public Nostr relays, STUN servers) and, on strict networks, an encrypted relay passes it along. A new "Who else helps, and what they can see" list on the home page names each one; a new question answers "Are any servers involved?"; the privacy page explains that without a passcode the handshake's key comes from the call code.
 - Changed: the captions button shows up front when captions can't work here (a browser that can't make them on the device, with nobody in the call who can): it's dimmed, says why on hover, and explains on click instead of failing after it. If Chrome can't download its language pack, it says so and suggests trying again.
 - Added: picture-in-picture steps in the `?debug` log (Chrome asked on a tab switch, window opened, or why it couldn't open).

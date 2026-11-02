@@ -132,6 +132,7 @@ tests/          end-to-end browser test (Playwright)
 custom.example/ your branding: copy to custom/
 deploy/         nginx config for your own server or Docker
 docs/           architecture and self-hosting guides
+extensions/     optional browser extensions, each its own package (call-recorder: records a call tab on your own device)
 ```
 
 ## Testing

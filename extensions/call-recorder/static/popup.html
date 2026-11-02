@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Recorder</title>
+<link rel="stylesheet" href="styles.css">
+<body class="popup">
+  <div class="bar">
+    <span class="brand"><img src="icons/logo.svg" alt="">Call Recorder</span>
+    <a class="quiet-link" id="open-library" href="library.html" target="_blank">Library</a>
+  </div>
+
+  <section class="card stack" id="site-card">
+    <div class="faint" id="site-name">Checking this tab</div>
+    <div class="title clip" id="tab-title"></div>
+  </section>
+
+  <section class="stack" id="idle-view" hidden>
+    <p class="notice" id="badge-note" hidden>Everyone in this call will see a badge that you are recording.</p>
+    <label class="check" id="consent-row" hidden>
+      <input type="checkbox" id="consent">
+      <span>I have told everyone in this call that I am recording.</span>
+    </label>
+    <p class="faint">If you share your screen or a tab in the call, its sound is recorded too.</p>
+    <button class="btn record wide" id="start">Start recording</button>
+  </section>
+
+  <section class="stack" id="recording-view" hidden>
+    <div class="row"><span class="rec-dot"></span><strong>Recording</strong></div>
+    <div class="timer" id="timer">0:00</div>
+    <div class="stack" aria-label="Sound levels">
+      <div class="meter-row"><span>Your voice</span><div class="meter"><i id="meter-mic"></i></div></div>
+      <div class="meter-row"><span>Call audio</span><div class="meter"><i id="meter-tab"></i></div></div>
+      <div class="meter-row" id="shared-row" hidden><span>Shared sound</span><div class="meter"><i id="meter-shared"></i></div></div>
+    </div>
+    <p class="notice warn" id="mic-hint" hidden>We cannot hear your microphone yet. Say something, and check which microphone your system is using.</p>
+    <p class="notice" id="bypass-note" hidden>Noise reduction was switched off for this recording because it was removing your voice.</p>
+    <button class="btn primary wide" id="stop">Stop and save</button>
+  </section>
+
+  <section class="stack" id="saving-view" hidden>
+    <p class="notice">Saving your recording. Keep this browser open.</p>
+  </section>
+
+  <p class="notice err" id="error" hidden></p>
+  <p class="notice warn" id="setup-note" hidden>Your microphone is not set up yet. <a href="setup.html" target="_blank">Open setup</a></p>
+  <p class="faint" id="where">Saved on this computer. Nothing is uploaded.</p>
+  <script src="popup.js"></script>
+</body>
+</html>
