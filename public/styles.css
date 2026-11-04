@@ -106,9 +106,10 @@ svg { width: 20px; height: 20px; flex: none; }
 }
 .leave:hover { background: #d63c41; }
 .leave svg { width: 24px; height: 24px; }
-/* while recording: a rounded rectangle (not a stretched circle) holding the stop square and the time */
-#rec-btn[aria-pressed="true"] { width: auto; min-width: 88px; padding: 0 .85rem 0 .7rem; border-radius: 14px; color: #fff; background: var(--rec); }
-#rec-btn[aria-pressed="true"]:hover { background: #d63c41; }
+/* while recording: a rounded rectangle (not a stretched circle) with the dot and the time, in a soft
+   red like the "recording" badge, so it tells you without shouting */
+#rec-btn[aria-pressed="true"] { width: auto; min-width: 88px; padding: 0 .85rem 0 .7rem; border-radius: 14px; color: #b4232a; background: #fdecec; }
+#rec-btn[aria-pressed="true"]:hover { background: #fbdcdc; }
 #share-btn[aria-pressed="true"] { background: var(--accent); color: #fff; }
 #hand-btn[aria-pressed="true"] { background: var(--amber); color: #1d1500; }
 .rec-time { font-size: .85rem; font-weight: 600; font-variant-numeric: tabular-nums; }

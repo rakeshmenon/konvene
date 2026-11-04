@@ -1708,7 +1708,7 @@ async function toggleRecording() {
     const blob = await state.recorder.stop();
     $("#rec-btn").setAttribute("aria-pressed", "false");
     $("#rec-btn").setAttribute("aria-label", "Record");
-    $("#rec-btn use").setAttribute("href", "#i-rec"); $("#rec-btn").title = "Record";
+    $("#rec-btn").title = "Record";
     $("#rec-time").hidden = true;
     setRecBy(state.selfId, false);
     state.actions.rec.send({ on: false });
@@ -1729,7 +1729,7 @@ async function toggleRecording() {
     if (!(await state.recorder.start())) { toast("Recording couldn't start."); return; }
     $("#rec-btn").setAttribute("aria-pressed", "true");
     $("#rec-btn").setAttribute("aria-label", "Stop recording");
-    $("#rec-btn use").setAttribute("href", "#i-rec-stop"); $("#rec-btn").title = "Stop recording";
+    $("#rec-btn").title = "Stop recording";
     $("#rec-time").hidden = false;
     setRecBy(state.selfId, true);
     state.actions.rec.send({ on: true });
