@@ -13,6 +13,7 @@ import { LOOKS, LIGHTS } from "./fx.js";
 import { BACKGROUNDS } from "./backgrounds.js";
 import { EXPRESSIONS, REACTIONS } from "./stickers.js";
 import { LIPS, BLUSH, WARPS, FACE_DEFAULTS } from "./face.js";
+import { onBeat } from "./clock.js";
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -538,22 +539,28 @@ function closeDeviceMenu() {
 /* ---------------- tiles and layout ---------------- */
 
 // a live mirror of your processed video (several places can show it at once)
+// All of them are drawn from one beat (clock.js), not each by the window it's in: a view that moved
+// into the picture-in-picture window and back used to stop for good when that window closed.
+const localViews = new Map(); // canvas -> { g, mirror, lostAt }
 function makeLocalView(mirror) {
   const c = document.createElement("canvas");
   c.className = "local-view" + (mirror ? " mirror" : "");
   c.width = state.pipe.out.width; c.height = state.pipe.out.height;
-  const g = c.getContext("2d");
-  const draw = () => {
-    if (!c.isConnected) return;
-    if (c.width !== state.pipe.out.width || c.height !== state.pipe.out.height) { c.width = state.pipe.out.width; c.height = state.pipe.out.height; }
-    g.drawImage(state.pipe.out, 0, 0);
-    // your camera is shown mirrored, like a mirror; the "camera off" card has text, so it isn't
-    if (mirror) c.classList.toggle("mirror", !state.pipe.showingCard);
-    // drawn by the window it's in (the picture-in-picture window keeps going when this tab is hidden)
-    (c.ownerDocument.defaultView || window).requestAnimationFrame(draw);
-  };
-  requestAnimationFrame(draw);
+  localViews.set(c, { g: c.getContext("2d"), mirror, lostAt: 0 });
+  drawLocalViews(performance.now());
   return c;
+}
+function drawLocalViews(now) {
+  const out = state.pipe.out;
+  for (const [c, v] of localViews) {
+    // off the page for a while: it was thrown away (moving between windows takes a moment)
+    if (!c.isConnected) { if (!v.lostAt) v.lostAt = now; else if (now - v.lostAt > 5000) localViews.delete(c); continue; }
+    v.lostAt = 0;
+    if (c.width !== out.width || c.height !== out.height) { c.width = out.width; c.height = out.height; }
+    v.g.drawImage(out, 0, 0);
+    // your camera is shown mirrored, like a mirror; the "camera off" card has text, so it isn't
+    if (v.mirror) c.classList.toggle("mirror", !state.pipe.showingCard);
+  }
 }
 
 // key: a person's id, or "screen:" + id for their shared screen
@@ -716,10 +723,15 @@ function rms(a) {
   return Math.sqrt(sum / levelBuf.length);
 }
 let meterLevel = 0;
-function speakingLoop() {
-  requestAnimationFrame(speakingLoop);
+// runs on every beat (clock.js), in the background too: the speaking rings in the picture-in-picture
+// window, your own tiles and the recording must keep going while you look at another tab
+function speakingLoop(now) {
+  drawLocalViews(now);
   if (micAnalyser) {
-    meterLevel = meterLevel * 0.7 + Math.min(1, rms(micAnalyser) * 9) * 0.3;
+    const level = rms(micAnalyser);
+    // talking (muted or not) means you're in front of the camera (presence.js)
+    if (level > 0.02 && !state.quiet) state.pipe.heardVoice(now);
+    meterLevel = meterLevel * 0.7 + Math.min(1, level * 9) * 0.3;
     const w = state.mic ? `${Math.round(meterLevel * 100)}%` : "0%";
     for (const m of $$(".meter i")) if (m.offsetParent !== null && m.style.width !== w) m.style.width = w;
     const lvl = state.mic ? meterLevel.toFixed(2) : "0";
@@ -2110,7 +2122,7 @@ async function init() {
     items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
   });
   addEventListener("click", () => { state.audio.resume(); if (state.pipe.denoiser) state.pipe.denoiser.resume(); for (const v of $$("#tiles video, #spotlight video", stageEl())) if (v.paused) v.play().catch(() => {}); });
-  speakingLoop();
+  onBeat(speakingLoop);
   window.__gr = state; // for tests
   window.__grLink = (withPass) => link(state.code, withPass);
 }

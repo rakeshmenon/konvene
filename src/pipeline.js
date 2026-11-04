@@ -6,6 +6,8 @@ import { drawBackground } from "./backgrounds.js";
 import { MatteCleaner } from "./matte.js";
 import { FaceGeo, FACE_DEFAULTS, FACE_KEYS, faceFxOn } from "./face.js";
 import { micConstraints, Denoiser, loadNoise, CAN_STRONG } from "./sound.js";
+import { onBeat } from "./clock.js";
+import { Presence, personShare, PERSON_SHARE } from "./presence.js";
 
 
 export class Pipeline {
@@ -36,7 +38,7 @@ export class Pipeline {
       mutedHint: true, // tell you when you talk while muted (handled in main.js)
     };
     this.away = false; this.onAway = null;
-    this.lastFaceAt = 0; this.faceSince = 0;
+    this.presence = new Presence(); this.voiceAt = -1e9;
     this.crop = { x: 0, y: 0, w: 1 };
     this.lumaCanvas = document.createElement("canvas"); this.lumaCanvas.width = 32; this.lumaCanvas.height = 18;
     this.lumaCtx = this.lumaCanvas.getContext("2d", { willReadFrequently: true });
@@ -68,16 +70,15 @@ export class Pipeline {
     this.stream = this.out.captureStream(30);
     this.applySettings(this.settings);
     this.running = true;
-    const tick = (now) => {
+    // clock.js keeps the frames coming when this tab is in the background too, so the others
+    // never see you frozen while you look at another tab
+    this.stopBeat = onBeat((now) => {
       if (!this.running) return;
-      requestAnimationFrame(tick);
       const before = this.last, t0 = performance.now();
       this.frame(now);
-      if (this.last !== before) this.watchSpeed(performance.now() - t0);
-    };
-    requestAnimationFrame(tick);
-    // keep frames flowing to peers even when this tab is in the background
-    this.bgTimer = setInterval(() => { if (document.hidden) this.frame(performance.now()); }, 66);
+      // a background tab is slower on purpose; only judge this computer's speed while it's in view
+      if (this.last !== before && !document.hidden) this.watchSpeed(performance.now() - t0);
+    });
   }
 
   // A computer that can't keep up at full HD gets a smaller picture instead of a stuttering one:
@@ -221,7 +222,12 @@ export class Pipeline {
       const faceFx = faceFxOn(s) || this.forceFace;
       const wantFace = s.sticker !== "none" || s.expressions || s.light !== "off" || wantSeg || s.autoAway || s.autoFrame || faceFx;
       if (wantFace) this.vision.needFace();
-      const res = this.vision.run(this.video, now, { wantFace, wantSeg });
+      // no face for a moment: ask the cutout model whether a person is still there (presence.js)
+      const checkPerson = s.autoAway && !!this.vision.face && this.presence.wantsPersonCheck(now);
+      if (checkPerson) this.vision.needSeg();
+      const res = this.vision.run(this.video, now, { wantFace, wantSeg: wantSeg || checkPerson });
+      let person = null;
+      if (checkPerson && res.mask) person = personShare(res.mask.data, this.vision.segKind === "multi" ? 0.7 : 0.5) >= PERSON_SHARE;
       face = res.face || (wantFace ? this.vision.lastFace : null);
       let facePt = null;
       if (face) {
@@ -231,8 +237,8 @@ export class Pipeline {
         if (faceFx) this.faceGeo.update(lm, this.video.videoWidth / this.video.videoHeight);
       } else this.faceGeo.reset();
       if (this.fx) this.fx.setFace(face && faceFx ? this.faceGeo : null);
-      this.trackAway(now, !!res.face, wantFace && !!this.vision.face);
-      if (res.mask && this.fx) {
+      this.trackAway(now, !!res.face, wantFace && !!this.vision.face, person);
+      if (res.mask && this.fx && wantSeg) {
         // the multiclass model is sure about you and unsure about chairs, so half-sure areas must touch
         // sure ones; the fast model is never that sure, so it uses plain 50% instead
         this.matte.strong = this.vision.segKind === "multi" ? 0.92 : 0.5;
@@ -240,7 +246,7 @@ export class Pipeline {
       }
       if (!wantSeg && this.fx) this.fx.hasMask = false;
       this.trackLight(now);
-    } else if (this.away) this.setAway(false);
+    } else { this.presence.reset(now); if (this.away) this.setAway(false); }
 
     // the card is text, so the mirrored self view must not flip it (see makeLocalView)
     this.showingCard = !camLive || this.away;
@@ -294,19 +300,15 @@ export class Pipeline {
     this.thumbStep();
   }
 
-  // no face for 8 seconds: you've stepped away. Back for a moment: you're back.
-  trackAway(now, seen, tracking) {
-    if (!this.settings.autoAway || !tracking) { this.lastFaceAt = now; if (this.away) this.setAway(false); return; }
-    if (!this.lastFaceAt) this.lastFaceAt = now;
-    if (seen) {
-      this.lastFaceAt = now;
-      if (!this.faceSince) this.faceSince = now;
-      if (this.away && now - this.faceSince > 600) this.setAway(false);
-    } else {
-      this.faceSince = 0;
-      if (!this.away && now - this.lastFaceAt > 8000) this.setAway(true);
-    }
+  // nobody in front of the camera for a while (no face, no person, no voice): you've stepped away
+  trackAway(now, seen, tracking, person = null) {
+    if (!this.settings.autoAway || !tracking) { this.presence.reset(now); if (this.away) this.setAway(false); return; }
+    const away = this.presence.update(now, { face: seen, person, voice: now - this.voiceAt < 1500 });
+    if (away !== this.away) this.setAway(away);
   }
+
+  // main.js calls this when the microphone hears you (muted or not): talking means you're here
+  heardVoice(now = performance.now()) { this.voiceAt = now; }
 
   setAway(on) {
     if (this.away === on) return;
@@ -388,7 +390,7 @@ export class Pipeline {
 
   stop() {
     this.running = false;
-    clearInterval(this.bgTimer);
+    if (this.stopBeat) { this.stopBeat(); this.stopBeat = null; }
     for (const st of [this.camStream, this.micStream]) if (st) st.getTracks().forEach((t) => t.stop());
     if (this.sendTrack) this.sendTrack.stop();
     if (this.cleanup) { this.cleanup(); this.cleanup = null; }

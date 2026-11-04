@@ -4,6 +4,9 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Fixed: in a background tab (looking at another tab, or with the call in picture-in-picture) your video reached others at about one frame a second, and recordings froze, because Chrome slows a hidden tab's timers. One shared clock (`src/clock.js`) now drives your video, your own tiles and the recording, from a small worker while the tab is hidden.
+- Fixed: your own tile stopped for the rest of the call after the picture-in-picture window closed.
+- Changed: "Stepped away" no longer triggers when you turn your head or look at another screen. A person in the picture (from the cutout model) or your voice counts as being there, and the wait is 30 seconds instead of 8 (`src/presence.js`).
 - Changed: the home page, privacy page and README no longer say there is no server or company in the middle. They say what is true: only the people in a call can see or hear it, and a few services help it start (the website host, public Nostr relays, STUN servers) and, on strict networks, an encrypted relay passes it along. A new "Who else helps, and what they can see" list on the home page names each one; a new question answers "Are any servers involved?"; the privacy page explains that without a passcode the handshake's key comes from the call code.
 - Changed: the captions button shows up front when captions can't work here (a browser that can't make them on the device, with nobody in the call who can): it's dimmed, says why on hover, and explains on click instead of failing after it. If Chrome can't download its language pack, it says so and suggests trying again.
 - Added: picture-in-picture steps in the `?debug` log (Chrome asked on a tab switch, window opened, or why it couldn't open).

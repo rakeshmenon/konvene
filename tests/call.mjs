@@ -64,6 +64,30 @@ if (process.env.FACE_VIDEO) args.push(`--use-file-for-fake-video-capture=${proce
   ok(leaky.leak >= 1 && leaky.match === 0, `their voice leaking from our speakers is called a leak, not the same room ${JSON.stringify(leaky)}`);
 }
 
+// stepped away: a turned head or a quiet moment isn't "away"; an empty seat is (src/presence.js)
+{
+  const { Presence, AWAY_MS, personShare, PERSON_SHARE } = await import("../src/presence.js");
+  const run = (ms, signals, p = new Presence(), from = 0) => { let away = false; for (let t = from; t <= from + ms; t += 100) away = p.update(t, typeof signals === "function" ? signals(t) : signals); return { away, p }; };
+  // looking at another screen: no face, but the cutout model sees a person once a second
+  const turned = run(120000, (t) => ({ face: false, person: t % 1000 === 0 ? true : null }));
+  ok(!turned.away, "someone turned away from the camera, still in the picture, is not 'stepped away'");
+  const talking = run(120000, (t) => ({ face: false, voice: t % 3000 === 0 }));
+  ok(!talking.away, "someone talking off camera is not 'stepped away'");
+  const empty = new Presence();
+  const before = run(AWAY_MS - 1000, { face: false, person: false }, empty).away;
+  const after = run(2000, { face: false, person: false }, empty, AWAY_MS - 900).away;
+  ok(!before && after, `an empty seat counts as away after ${AWAY_MS / 1000} s, not before`);
+  const backFace = run(700, { face: true }, empty, AWAY_MS + 2000).away;
+  ok(!backFace, "a face for a moment brings the video back");
+  const away2 = new Presence(); run(AWAY_MS + 1000, {}, away2);
+  ok(run(10000, { voice: true }, away2, AWAY_MS + 1100).away, "a voice alone doesn't end 'stepped away' (it could be a TV)");
+  ok(!run(2100, (t) => ({ person: t % 1000 === 0 ? true : null }), away2, AWAY_MS + 11200).away, "a person seen twice in a row ends 'stepped away'");
+  const chk = new Presence(); chk.update(0, { face: true });
+  ok(!chk.wantsPersonCheck(1500) && chk.wantsPersonCheck(2500), "the person check starts only after the face has been missing for 2 s");
+  const mask = new Float32Array(1000); mask.fill(0.9, 0, 80);
+  ok(personShare(mask, 0.7) >= PERSON_SHARE && personShare(new Float32Array(1000), 0.7) < PERSON_SHARE, "person share counts only confident person pixels");
+}
+
 const browser = await chromium.launch({ args });
 const ctx = await browser.newContext({ viewport: { width: 1360, height: 820 }, permissions: ["camera", "microphone"] });
 const outside = [];
@@ -293,6 +317,48 @@ const aBadge = await a.evaluate(() => ({ hidden: document.querySelector("#rec-ba
 console.log("      host after confirm:", JSON.stringify(aBadge));
 await b.waitForFunction(() => !document.querySelector("#rec-badge").hidden, null, { timeout: 8000, polling: 250 }).then(() => ok(true, "guest sees the REC badge")).catch(async () => ok(false, "guest sees the REC badge " + JSON.stringify(await b.evaluate(() => ({ hidden: document.querySelector("#rec-badge").hidden, recBy: [...window.__gr.recBy.keys()] })))));
 ok((await b.textContent("#rec-text")).includes("Rakesh"), `badge names who records: ${await b.textContent("#rec-text")}`);
+// a background tab: Chrome stops animation frames there and slows the page's timers. Your video,
+// your own tile and the recording must keep going (clock.js). Hidden is simulated: animation frames
+// are held back and the page reports itself hidden.
+await a.waitForFunction(() => window.__gr.recorder.recording && !document.querySelector("#rec-time").hidden, null, { timeout: 15000 }).catch(() => {});
+const bgRun = await a.evaluate(async () => {
+  const setHidden = (on) => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => on });
+    Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (on ? "hidden" : "visible") });
+    document.dispatchEvent(new Event("visibilitychange"));
+  };
+  const self = document.querySelector("#call .tile.me canvas");
+  const sig = () => { const c = document.createElement("canvas"); c.width = 32; c.height = 18; const g = c.getContext("2d"); g.drawImage(self, 0, 0, 32, 18); return g.getImageData(0, 0, 32, 18).data.join(","); };
+  const raf = window.requestAnimationFrame, held = [];
+  window.requestAnimationFrame = (f) => { held.push(f); return 0; };
+  setHidden(true);
+  const s0 = sig(), rec0 = document.querySelector("#rec-time").textContent;
+  let frames = 0, last = window.__gr.pipe.last;
+  for (let i = 0; i < 150; i++) { await new Promise((r) => setTimeout(r, 20)); if (window.__gr.pipe.last !== last) { frames++; last = window.__gr.pipe.last; } }
+  const s1 = sig(), rec1 = document.querySelector("#rec-time").textContent;
+  window.requestAnimationFrame = raf; setHidden(false); for (const f of held) raf(f);
+  return { frames, selfMoved: s0 !== s1, rec0, rec1 };
+});
+// (this test machine draws only a few frames a second at full HD; a real computer does 15 or more)
+ok(bgRun.frames >= 3, `your video keeps going in a background tab (${bgRun.frames} frames in 3 s)`);
+ok(bgRun.selfMoved, "your own tile keeps moving in a background tab");
+ok(bgRun.rec0 !== bgRun.rec1, `the recording timer keeps counting in a background tab (${bgRun.rec0} to ${bgRun.rec1})`);
+// picture-in-picture: the tiles move into another window and back, then that window closes.
+// Your own tile used to stop for good, because its next frame was waiting on the closed window.
+const pipMove = await a.evaluate(async () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const stage = window.__gr.pip.stage, f = document.createElement("iframe");
+  document.body.append(f); await wait(100);
+  const holder = document.createElement("div"); stage.before(holder);
+  f.contentDocument.body.append(stage); await wait(600);
+  holder.replaceWith(stage); f.remove(); await wait(300);
+  const self = document.querySelector("#call .tile.me canvas");
+  const sig = () => { const c = document.createElement("canvas"); c.width = 32; c.height = 18; const g = c.getContext("2d"); g.drawImage(self, 0, 0, 32, 18); return g.getImageData(0, 0, 32, 18).data.join(","); };
+  const s0 = sig(); await wait(1200);
+  return s0 !== sig();
+});
+ok(pipMove, "your own tile keeps moving after the picture-in-picture window closes");
+
 await a.waitForTimeout(3500);
 await shot(a, `${OUT}/05-recording.png`);
 await a.click("#share-btn"); // stop sharing
