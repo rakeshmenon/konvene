@@ -1,6 +1,6 @@
 {
   "name": "konvene",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "description": "Free, private video calls in the browser. Peer to peer, no account, effects on your own device.",
   "license": "AGPL-3.0-only",

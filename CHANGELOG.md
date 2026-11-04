@@ -2,9 +2,9 @@
 
 All notable changes to Konvene. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## Unreleased
+## 1.2.0 (2026-11-04)
 
-- Added: leaving while recording offers "Save and leave" or "Leave without saving" (it used to drop the recording). Closing or reloading the tab mid-recording asks first. A recording cut off by a crash or a closed tab is written piece by piece to disk (a small worker flushes each piece), so the next visit offers "You have an unsaved recording", repaired so it shows its length and can be seeked (`src/recstore.js`).
+- Added: leaving while recording offers "Save and leave" or "Leave without saving" (it used to drop the recording). Closing or reloading the tab mid-recording asks first. A recording cut off by a crash or a closed tab is written to disk as it records (by a small worker), so the next visit offers "You have an unsaved recording", repaired so it shows its length and can be seeked (`src/recstore.js`).
 - Changed: while recording, the record button is a rounded rectangle in a soft red with the dot and the time, instead of a solid red oval.
 - Changed: recordings are a proper MP4 (H.264 and AAC) with a length and a seek bar, encoded at constant quality so still scenes cost few bytes; browsers without MP4 encoding make a seekable WebM. They are written to the browser's private storage on disk while recording instead of being held in memory, and look like the call screen (1080p, the call's colours and font, names centred in their labels, the speaking ring, a muted icon, initials for people without video). Mediabunny does the encoding and file writing and is loaded only when someone records.
 - Fixed: in a background tab (looking at another tab, or with the call in picture-in-picture) your video reached others at about one frame a second, and recordings froze, because Chrome slows a hidden tab's timers. One shared clock (`src/clock.js`) now drives your video, your own tiles and the recording, from a small worker while the tab is hidden.
