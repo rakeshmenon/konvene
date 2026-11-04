@@ -3,4 +3,5 @@
 export {
   Output, Mp4OutputFormat, WebMOutputFormat, StreamTarget, BufferTarget,
   MediaStreamVideoTrackSource, MediaStreamAudioTrackSource, Quality, canEncodeVideo, canEncodeAudio,
+  Input, BlobSource, ALL_FORMATS, Conversion,
 } from "mediabunny";

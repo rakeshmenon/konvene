@@ -5,19 +5,21 @@
 // a constant quality where the browser allows it: a still picture of people talking costs very
 // few bytes, so files stay small without looking worse.
 //
-// While recording, the file is written to this site's private storage on your disk (the origin
-// private file system: no permission prompt, invisible to other sites), not kept in memory, so a
-// long call doesn't fill your computer's memory. When you stop, you save it as a normal download.
-// Leftovers from an earlier visit are cleared the next time you open Konvene or record.
+// While recording, the file is written piece by piece to this site's private storage on your disk
+// (recstore.js), not kept in memory, so a long call doesn't fill your computer's memory, and a crash
+// or a closed tab doesn't lose it: the next visit offers it back. MP4s are written in self-contained
+// pieces while recording (a "fragmented" MP4, playable even if cut off), then repackaged into a
+// plain MP4 when you stop, without re-encoding. You save the result as a normal download.
 //
 // Where the browser can't encode video itself (WebCodecs), the older built-in recorder is used.
+import { openRecordingFile, mark, removeRecording, repair } from "./recstore.js";
 
 // Mediabunny (src/encode.js) arrives only when the first recording starts; build.mjs fills in its path
 let lib = null;
-const loadLib = () => (lib ||= import(__ENCODE_JS__));
+export const loadLib = () => (lib ||= import(__ENCODE_JS__));
 
-const DIR = "konvene-recordings";
 const FPS = 30;
+const BEAT_MS = 5000; // how often a recording tells other tabs it's still alive (recstore.js)
 
 // the call screen's look (styles.css)
 const C = {
@@ -58,33 +60,6 @@ async function choosePlan() {
   return null;
 }
 
-// a file in the origin private file system, or null where the browser doesn't offer it here
-async function openDiskFile(name) {
-  try {
-    if (!navigator.storage || !navigator.storage.getDirectory) return null;
-    const root = await navigator.storage.getDirectory();
-    const dir = await root.getDirectoryHandle(DIR, { create: true });
-    const handle = await dir.getFileHandle(name, { create: true });
-    if (!handle.createWritable) return null;
-    const writable = await handle.createWritable();
-    return { dir, handle, writable };
-  } catch {
-    return null;
-  }
-}
-
-// remove recordings left on disk by an earlier visit (one being written by another tab is locked
-// and simply stays)
-export async function clearOldRecordings(keep = null) {
-  try {
-    const root = await navigator.storage.getDirectory();
-    const dir = await root.getDirectoryHandle(DIR, { create: true });
-    for await (const name of dir.keys()) {
-      if (name !== keep) await dir.removeEntry(name).catch(() => {});
-    }
-  } catch { /* no private storage here */ }
-}
-
 export class CallRecorder {
   constructor(audioCtx) {
     this.ctx = audioCtx;
@@ -97,12 +72,17 @@ export class CallRecorder {
     this.startedAt = 0;
     this.drawnAt = 0;
     this.active = false;
+    this.finishing = false; // stopped, but the file is still being finished
+    this.beatAt = 0;
     this.job = null; // { output, video, audio, disk, plan } or { rec, chunks, mime }
     this.planPromise = null; // worked out on the first recording (choosePlan)
     this.mime = ["video/mp4;codecs=avc1,mp4a", "video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"]
       .find((m) => window.MediaRecorder && MediaRecorder.isTypeSupported(m)) || "";
     this.supported = !!(this.canvas.captureStream && (HAS_CODECS || (window.MediaRecorder && this.mime)));
     if (document.fonts && document.fonts.load) document.fonts.load(`500 24px ${FONT}`).catch(() => {});
+    // the tab is closing or reloading mid-recording: mark the file as left behind straight away, so
+    // the next visit offers it back without waiting for its heartbeat to go quiet (recstore.js)
+    addEventListener("pagehide", () => { if (this.active && this.job && this.job.name) mark(this.job.name, { beat: 0 }); });
   }
 
   addAudio(id, stream) {
@@ -146,11 +126,16 @@ export class CallRecorder {
     this.setSize(plan.W, plan.H);
     this.paint([]); // the video track needs a first frame
     const name = `rec-${Date.now()}.${plan.format}`;
-    await clearOldRecordings();
-    const disk = await openDiskFile(name);
-    const target = disk ? new StreamTarget(disk.writable, { chunked: true, chunkSize: 4 * 1024 * 1024 }) : new BufferTarget();
-    // metadata at the end: written once, at the finish, so nothing has to be held back in memory
-    const format = plan.format === "mp4" ? new Mp4OutputFormat({ fastStart: false }) : new WebMOutputFormat();
+    mark(name, { state: "recording", at: Date.now(), beat: Date.now(), format: plan.format });
+    const disk = await openRecordingFile(name);
+    if (!disk) mark(name, null);
+    // each piece goes to disk as soon as it's made, so a crash loses at most the last moment
+    const target = disk ? new StreamTarget(disk.writable) : new BufferTarget();
+    // MP4: self-contained pieces of about 2 seconds while recording, so a cut-off file still plays
+    // (it's repackaged into a plain MP4 at the end). WebM plays when cut off anyway.
+    const format = plan.format === "mp4"
+      ? new Mp4OutputFormat(disk && disk.durable ? { fastStart: "fragmented", minimumFragmentDuration: 2 } : { fastStart: false })
+      : new WebMOutputFormat();
     const output = new Output({ format, target });
     const vtrack = this.canvas.captureStream(FPS).getVideoTracks()[0];
     const video = new MediaStreamVideoTrackSource(vtrack, {
@@ -160,9 +145,10 @@ export class CallRecorder {
     const atrack = this.dest.stream.getAudioTracks()[0];
     const audio = new MediaStreamAudioTrackSource(atrack, { codec: plan.audio, quality: new Quality({ bitrate: 96_000 }) });
     output.addAudioTrack(audio);
+    const job = { output, video, audio, vtrack, disk, plan, name: disk ? name : null, fragmented: plan.format === "mp4" && !!disk && disk.durable, failed: null };
+    for (const src of [video, audio]) src.errorPromise.catch((e) => { job.failed = e; console.warn("recording problem", e); });
     await output.start();
-    this.job = { output, video, audio, vtrack, disk, plan, name, failed: null };
-    for (const s of [video, audio]) s.errorPromise.catch((e) => { if (this.job) this.job.failed = e; console.warn("recording problem", e); });
+    this.job = job;
   }
 
   startBuiltIn() {
@@ -175,7 +161,8 @@ export class CallRecorder {
     this.job = job;
   }
 
-  // resolves with the finished file (a Blob backed by the file on disk where possible), or null
+  // Resolves with { blob, name } (the blob reads from the file on disk where possible; name is the
+  // file's name in private storage, or null when it only exists in memory), or null.
   async stop() {
     if (!this.active) return null;
     this.active = false;
@@ -184,26 +171,48 @@ export class CallRecorder {
     if (!job) return null;
     if (job.rec) {
       return new Promise((resolve) => {
-        job.rec.onstop = () => resolve(new Blob(job.chunks, { type: job.mime.split(";")[0] }));
+        job.rec.onstop = () => resolve({ blob: new Blob(job.chunks, { type: job.mime.split(";")[0] }), name: null });
         try { job.rec.stop(); } catch { resolve(null); }
       });
     }
-    const type = job.plan.format === "mp4" ? "video/mp4" : "video/webm";
+    this.finishing = true;
     try {
-      await job.output.finalize();
-    } catch (e) {
-      console.warn("recording couldn't be finished", e);
-      try { await job.output.cancel(); } catch { /* already gone */ }
-      return null;
-    } finally {
-      job.vtrack.stop();
-    }
-    if (job.disk) {
-      const file = await job.disk.handle.getFile();
+      const type = job.plan.format === "mp4" ? "video/mp4" : "video/webm";
+      try {
+        await job.output.finalize();
+      } catch (e) {
+        console.warn("recording couldn't be finished", e);
+        try { await job.output.cancel(); } catch { /* already gone */ }
+        // what made it to disk can still be rescued on the next visit
+        return null;
+      } finally {
+        job.vtrack.stop();
+      }
+      if (!job.name) return { blob: new Blob([job.output.target.buffer], { type }), name: null };
+      let name = job.name, file = await job.disk.file();
+      mark(name, { state: "done" });
+      if (job.fragmented) {
+        // a plain MP4 shows its length everywhere; if repackaging fails, the pieces still play
+        try { ({ name, file } = await repair(await loadLib(), name, file, "mp4")); } catch (e) { console.warn("kept the recording as written", e); }
+      }
       // a Blob over the file on disk: saving it streams from disk, nothing is copied into memory
-      return new Blob([file], { type });
+      return { blob: new Blob([file], { type }), name };
+    } finally {
+      this.finishing = false;
     }
-    return new Blob([job.output.target.buffer], { type });
+  }
+
+  // stop and throw the recording away ("Leave without saving")
+  async cancel() {
+    if (!this.active) return;
+    this.active = false;
+    const job = this.job;
+    this.job = null;
+    if (!job) return;
+    if (job.rec) { try { job.rec.stop(); } catch { /* stopped */ } return; }
+    try { await job.output.cancel(); } catch { /* gone */ }
+    job.vtrack.stop();
+    if (job.name) await removeRecording(job.name);
   }
 
   setSize(W, H) {
@@ -217,6 +226,8 @@ export class CallRecorder {
     if (!this.active || !this.job) return;
     if (now - this.drawnAt < 1000 / FPS - 2) return;
     this.drawnAt = now;
+    // tell other tabs this recording is alive, so they don't offer to rescue it (recstore.js)
+    if (this.job.name && now - this.beatAt > BEAT_MS) { this.beatAt = now; mark(this.job.name, { beat: Date.now() }); }
     this.paint(tiles);
   }
 

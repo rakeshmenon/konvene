@@ -24,6 +24,7 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `backgrounds.js` | Virtual backgrounds drawn in code |
 | `net.js` | Rooms: Trystero (handshake over public Nostr relays) or `?local=1` (handshake over a BroadcastChannel, for testing) |
 | `recorder.js` | Records the call laid out like the call screen, with every voice, into a seekable MP4 (or WebM) written to the browser's private storage on disk while recording |
+| `recstore.js` | Recording files in the browser's private storage: an in-place writer in a worker (survives a crash), each file's state, finding unsaved ones, and repackaging a file so it has its length |
 | `encode.js` | The parts of Mediabunny the recorder uses; built as its own file under `/vendor` and loaded only when recording starts |
 | `clock.js` | One beat for everything that draws (your video, your own tiles, the recording): animation frames while the tab is visible, a small worker while it's hidden |
 | `presence.js` | "Stepped away": a face, a person in the picture or your voice counts as being there |

@@ -366,7 +366,8 @@ await shot(a, `${OUT}/05-recording.png`);
 await a.click("#share-btn"); // stop sharing
 await b.waitForFunction(() => !document.querySelector(".tile.screen"), null, { timeout: 10000 }).then(() => ok(true, "screen tile goes when sharing stops")).catch(() => ok(false, "screen tile goes when sharing stops"));
 await a.click("#rec-btn");
-await a.waitForSelector("#saved-dialog[open]", { timeout: 10000 });
+// finishing a long recording on this slow test machine takes a while
+await a.waitForSelector("#saved-dialog[open]", { timeout: 60000 });
 const size = await a.evaluate(() => window.__gr.lastRecording && window.__gr.lastRecording.size);
 ok(size > 20000, `recording made on the device (${size} bytes)`);
 // a proper file: it has a length (players can seek), and it was written to disk while recording
@@ -552,6 +553,58 @@ await m.click("#start-btn");
 await m.waitForTimeout(1500);
 ok((await m.evaluate(() => document.body.dataset.screen === "lobby" && document.documentElement.scrollWidth <= 390)), "phone pre-join page fits without sideways scroll");
 await shot(m, `${OUT}/08b-phone-lobby.png`, { fullPage: true });
+
+// leaving or closing mid-recording: Leave offers "Save and leave", closing the tab asks first, and a
+// recording cut off by a closed tab is offered back on the next visit, repaired so it can be seeked
+{
+  const rctx = await browser.newContext({ viewport: { width: 1280, height: 800 }, permissions: ["camera", "microphone"], acceptDownloads: true });
+  const r = await rctx.newPage(); watch(r);
+  const joinAlone = async (p) => {
+    await p.goto(BASE + "?local=1"); await p.waitForFunction(() => window.__gr && window.__gr.pipe.running, null, { timeout: 30000 });
+    await p.evaluate(() => window.__gr.pipe.applySettings({ autoAway: false }));
+    await p.click("#start-btn"); await p.fill("#name", "Rakesh"); await p.click("#join-btn"); await p.waitForSelector("#call:not([hidden])");
+    await p.click("#rec-btn"); await p.click("#rec-confirm");
+    await p.waitForFunction(() => window.__gr.recorder.kind, null, { timeout: 20000 });
+  };
+  await joinAlone(r);
+  await r.waitForTimeout(3000);
+  await r.click("#leave-btn");
+  const leaveUi = await r.evaluate(() => ({ save: !document.querySelector("#leave-save").hidden, leave: document.querySelector("#leave-confirm").textContent }));
+  ok(leaveUi.save && /without saving/.test(leaveUi.leave), `leaving while recording offers "Save and leave" and "Leave without saving" ${JSON.stringify(leaveUi)}`);
+  await r.click('#leave-dialog button[value="stay"]');
+  await r.waitForTimeout(3000);
+  let asked = null;
+  r.on("dialog", async (d) => { asked = d.type(); await d.accept(); });
+  await r.close({ runBeforeUnload: true });
+  await new Promise((res) => setTimeout(res, 1500));
+  ok(asked === "beforeunload", `closing the tab mid-recording asks first (${asked})`);
+  const r2 = await rctx.newPage(); watch(r2);
+  await r2.goto(BASE + "?local=1");
+  const offered = await r2.waitForSelector("#rescue-dialog[open]", { timeout: 15000 }).then(() => true).catch(() => false);
+  ok(offered, "the cut-off recording is offered back on the next visit");
+  if (offered) {
+    const [dl] = await Promise.all([r2.waitForEvent("download", { timeout: 60000 }).catch(() => null), r2.click("#rescue-save")]);
+    const back = await r2.evaluate(async () => {
+      const b = window.__gr.lastRescue;
+      if (!b) return null;
+      const v = document.createElement("video"); v.muted = true; v.src = URL.createObjectURL(b);
+      await new Promise((res) => { v.onloadedmetadata = res; v.onerror = res; setTimeout(res, 10000); });
+      return { size: b.size, duration: v.duration };
+    });
+    ok(!!dl && back && back.size > 1000 && Number.isFinite(back.duration) && back.duration > 1, `the rescued recording downloads, with a length players can seek (${back ? back.duration.toFixed ? back.duration.toFixed(1) : back.duration : "none"} s)`);
+  }
+  // Save and leave: the usual Save, then out of the call
+  await r2.evaluate(() => window.__gr.pipe.applySettings({ autoAway: false }));
+  await r2.click("#start-btn"); await r2.fill("#name", "Rakesh"); await r2.click("#join-btn"); await r2.waitForSelector("#call:not([hidden])");
+  await r2.click("#rec-btn"); await r2.click("#rec-confirm"); await r2.waitForFunction(() => window.__gr.recorder.kind, null, { timeout: 20000 });
+  await r2.waitForTimeout(3000);
+  await r2.click("#leave-btn"); await r2.click("#leave-save");
+  const savedShown = await r2.waitForSelector("#saved-dialog[open]", { timeout: 60000 }).then(() => true).catch(() => false);
+  const [dl2] = savedShown ? await Promise.all([r2.waitForEvent("download", { timeout: 30000 }).catch(() => null), r2.click("#save-rec")]) : [null];
+  const left = await r2.waitForFunction(() => !window.__gr.inCall && !/\/[a-z0-9]{3}-/.test(location.pathname), null, { timeout: 15000 }).then(() => true).catch(() => false);
+  ok(savedShown && !!dl2 && left, "Save and leave saves the recording, then leaves the call");
+  await rctx.close();
+}
 await browser.close();
 console.log(failures ? `\n${failures} check(s) failed` : "\nAll checks passed");
 process.exit(failures ? 1 : 0);

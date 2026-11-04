@@ -4,7 +4,8 @@ import { Pip, PIP_DOC, PIP_VIDEO } from "./pip.js";
 import { Quality, TIERS, worse } from "./quality.js";
 import { join, makeRoomCode, randomChars } from "./net.js";
 import { iceServers, CONFIG } from "./config.js";
-import { CallRecorder, clearOldRecordings } from "./recorder.js";
+import { CallRecorder, loadLib as loadRecordingLib } from "./recorder.js";
+import { leftovers, mark as markRecording, removeRecording, repair as repairRecording } from "./recstore.js";
 import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
 import { initHome } from "./home.js";
 import { RoomEcho } from "./roomecho.js";
@@ -1705,18 +1706,32 @@ async function toggleRecording() {
   if (OFF("recording") && !state.recorder.recording) return;
   if (!state.recorder.supported) { toast("Recording isn't supported in this browser."); return; }
   if (state.recorder.recording) {
-    const blob = await state.recorder.stop();
     $("#rec-btn").setAttribute("aria-pressed", "false");
     $("#rec-btn").setAttribute("aria-label", "Record");
     $("#rec-btn").title = "Record";
     $("#rec-time").hidden = true;
+    $("#rec-btn").disabled = true;
     setRecBy(state.selfId, false);
-    state.actions.rec.send({ on: false });
-    if (blob && blob.size) {
-      state.lastRecording = blob;
-      const mb = (blob.size / 1e6).toFixed(1);
-      $("#saved-info").textContent = `${mb} MB, kept on this device for now. Save it to keep it: it's cleared the next time you open ${CONFIG.name} or record again.`;
-      $("#saved-dialog").showModal();
+    if (state.actions) state.actions.rec.send({ on: false });
+    // finishing the file (and repackaging an MP4) can take a few seconds on a long call
+    const slow = setTimeout(() => toast("Finishing your recording…", 15000), 600);
+    const rec = await state.recorder.stop();
+    clearTimeout(slow);
+    if ($("#toast").textContent.startsWith("Finishing")) $("#toast").hidden = true;
+    $("#rec-btn").disabled = false;
+    if (rec && rec.blob && rec.blob.size) {
+      state.lastRecording = rec.blob;
+      state.lastRecName = rec.name;
+      const size = sizeText(rec.blob.size);
+      $("#saved-info").textContent = rec.name
+        ? `${size}, kept on this device for now. Save it to put a copy in your Downloads. If you close ${CONFIG.name} first, it's offered to you again next time.`
+        : `${size}, kept in this browser for now. If you close it without saving, it's gone.`;
+      const d = $("#saved-dialog");
+      d.returnValue = "";
+      d.showModal();
+    } else {
+      if (rec === null) toast("The recording couldn't be finished. What was recorded is offered to you the next time you open this page.", 7000);
+      if (state.leaveAfterSave) leaveCall();
     }
     return;
   }
@@ -1736,17 +1751,79 @@ async function toggleRecording() {
   });
 }
 
-function saveRecording() {
-  const blob = state.lastRecording;
-  if (!blob) return;
-  const d = new Date();
+// "12.3 MB", or "640 KB" for a short one
+function sizeText(bytes) { return bytes >= 1e6 ? `${(bytes / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1e3))} KB`; }
+
+// hand a recording to the browser's Downloads, named after when it was made
+function downloadRecording(blob, when = new Date()) {
+  const d = when;
   const ext = blob.type.includes("mp4") ? "mp4" : "webm";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `konvene-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}.${ext}`;
   document.body.appendChild(a); a.click();
-  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000);
-  $("#saved-dialog").close();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 60000);
+}
+
+function saveRecording() {
+  const blob = state.lastRecording;
+  if (!blob) return;
+  downloadRecording(blob);
+  // the copy on disk is cleared a little later, once the download has read it (recstore.js)
+  if (state.lastRecName) markRecording(state.lastRecName, { state: "saved", savedAt: Date.now() });
+  $("#saved-dialog").close("saved");
+}
+
+// "Discard" throws the file away; closing the dialog any other way keeps it to be offered next time
+function savedDialogClosed() {
+  const d = $("#saved-dialog");
+  if (d.returnValue === "close" && state.lastRecName) removeRecording(state.lastRecName);
+  state.lastRecName = null;
+  if (state.leaveAfterSave) {
+    state.leaveAfterSave = false;
+    // give the download a moment to start before this page goes
+    setTimeout(leaveCall, d.returnValue === "saved" ? 1500 : 0);
+  }
+}
+
+// A recording from an earlier visit that was never saved: the browser or tab closed mid-recording,
+// or it finished and the page closed before Save. Offer it back, one at a time, newest first.
+async function offerRescue() {
+  const list = await leftovers();
+  if (!list.length) return;
+  const r = list[0];
+  const d = $("#rescue-dialog");
+  if (d.open) return;
+  const when = new Date(r.at);
+  const size = sizeText(r.file.size);
+  const day = when.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short" });
+  const time = when.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  $("#rescue-info").textContent = r.finished
+    ? `From ${day}, ${time} (${size}). It finished but was never saved.`
+    : `From ${day}, ${time} (${size}). The browser or the tab closed while it was recording, so it ends there.`;
+  const save = $("#rescue-save");
+  save.disabled = false; save.textContent = "Save video";
+  save.onclick = async () => {
+    save.disabled = true; save.textContent = "Preparing…";
+    let { name, file } = r;
+    // a cut-off recording gets its length and seek index back, so players can seek through it
+    if (!r.finished) {
+      try { ({ name, file } = await repairRecording(await loadRecordingLib(), r.name, r.file, r.format)); }
+      catch (e) { console.warn("saving the recording as it is", e); }
+    }
+    const blob = new Blob([file], { type: r.format === "mp4" ? "video/mp4" : "video/webm" });
+    state.lastRescue = blob;
+    downloadRecording(blob, when);
+    markRecording(name, { state: "saved", savedAt: Date.now() });
+    d.close("saved");
+  };
+  d.onclose = () => {
+    if (d.returnValue === "discard") removeRecording(r.name);
+    // the next one, if there is another; anything not decided stays for the next visit
+    if (d.returnValue === "saved" || d.returnValue === "discard") setTimeout(offerRescue, 300);
+  };
+  d.returnValue = "";
+  d.showModal();
 }
 
 async function invite() {
@@ -1878,6 +1955,7 @@ function syncSec() {
 }
 
 function leaveCall() {
+  state.leaving = true; // no "Leave site?" question for leaving on purpose
   if (state.screen) stopShare();
   forgetCall();
   try { sessionStorage.removeItem(QUIET_KEY); } catch { /* private */ }
@@ -1929,7 +2007,14 @@ function showCall() {
 async function init() {
   state.audio = new (window.AudioContext || window.webkitAudioContext)();
   state.recorder = new CallRecorder(state.audio);
-  clearOldRecordings(); // a recording left over from an earlier visit (one another tab is writing stays)
+  // a recording an earlier visit never saved (a crash, a closed tab) is offered back
+  setTimeout(() => offerRescue().catch((e) => console.warn("couldn't check for earlier recordings", e)), 800);
+  // closing or reloading the tab mid-recording asks first (the browser words the question)
+  addEventListener("beforeunload", (e) => {
+    if (state.leaving || !state.recorder || !(state.recorder.recording || state.recorder.finishing)) return;
+    e.preventDefault();
+    e.returnValue = "";
+  });
   Object.assign(state.pipe.settings, loadFx());
   try { $("#name").value = localStorage.getItem("gr_name") || ""; } catch { /* private */ }
   state.pipe.name = $("#name").value;
@@ -2064,6 +2149,7 @@ async function init() {
   $("#hand-btn").addEventListener("click", () => setHand(!state.hand));
   $("#rec-btn").addEventListener("click", toggleRecording);
   $("#save-rec").addEventListener("click", saveRecording);
+  $("#saved-dialog").addEventListener("close", savedDialogClosed);
   $("#invite-btn").addEventListener("click", invite);
   $("#room-chip").addEventListener("click", invite);
   $$("[data-panel]").forEach((b) => b.addEventListener("click", () => openPanel(b.dataset.panel)));
@@ -2086,13 +2172,27 @@ async function init() {
   // hanging up asks first (and warns about an unsaved recording)
   $("#leave-btn").addEventListener("click", () => {
     const d = $("#leave-dialog");
-    $("#leave-d-text").textContent = state.recorder.recording
-      ? "You're recording. Leaving stops the recording and it won't be saved."
+    const rec = state.recorder.recording;
+    $("#leave-d-text").textContent = rec
+      ? "You're recording. Save it before you go, or leave without it."
       : "You can come back with the same link while the call is going.";
+    $("#leave-confirm").textContent = rec ? "Leave without saving" : "Leave call";
+    $("#leave-confirm").className = rec ? "btn secondary" : "btn danger";
+    $("#leave-save").hidden = !rec;
     d.returnValue = "";
     d.showModal();
   });
-  $("#leave-dialog").addEventListener("close", () => { if ($("#leave-dialog").returnValue === "leave") leaveCall(); });
+  $("#leave-dialog").addEventListener("close", async () => {
+    const v = $("#leave-dialog").returnValue;
+    if (v === "leave") {
+      if (state.recorder.recording) await state.recorder.cancel();
+      leaveCall();
+    } else if (v === "save-leave") {
+      // stop, show the usual Save, and leave once it's saved or discarded (savedDialogClosed)
+      state.leaveAfterSave = true;
+      if (state.recorder.recording) await toggleRecording(); else leaveCall();
+    }
+  });
 
   // picture-in-picture: the Pop out button, and Chrome opens it by itself when you switch tabs
   state.pip = new Pip({

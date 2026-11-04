@@ -494,7 +494,15 @@
     <form method="dialog">
       <h2 id="leave-d-title">Leave the call?</h2>
       <p id="leave-d-text">You can come back with the same link while the call is going.</p>
-      <div class="row"><button class="btn secondary" value="stay" autofocus>Stay</button><button class="btn danger" value="leave" id="leave-confirm">Leave call</button></div>
+      <div class="row"><button class="btn secondary" value="stay" autofocus>Stay</button><button class="btn danger" value="leave" id="leave-confirm">Leave call</button><button class="btn primary" value="save-leave" id="leave-save" hidden>Save and leave</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="rescue-dialog" aria-labelledby="rescue-title">
+    <form method="dialog">
+      <h2 id="rescue-title">You have an unsaved recording</h2>
+      <p id="rescue-info"></p>
+      <div class="row"><button class="btn secondary" value="discard">Discard</button><button class="btn primary" type="button" id="rescue-save">Save video</button></div>
     </form>
   </dialog>
 
