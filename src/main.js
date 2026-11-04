@@ -4,7 +4,7 @@ import { Pip, PIP_DOC, PIP_VIDEO } from "./pip.js";
 import { Quality, TIERS, worse } from "./quality.js";
 import { join, makeRoomCode, randomChars } from "./net.js";
 import { iceServers, CONFIG } from "./config.js";
-import { CallRecorder } from "./recorder.js";
+import { CallRecorder, clearOldRecordings } from "./recorder.js";
 import { NOISE_MODES, CAN_STRONG, saveNoise } from "./sound.js";
 import { initHome } from "./home.js";
 import { RoomEcho } from "./roomecho.js";
@@ -747,11 +747,17 @@ function speakingLoop(now) {
   }
   if (state.recorder && state.recorder.recording) {
     const tiles = [];
+    const initial = (n) => (n || "?").trim().charAt(0).toUpperCase() || "?";
     if (state.screen && state.screenVideo) tiles.push({ source: state.screenVideo, name: `${state.name}'s screen`, big: true, contain: true });
     for (const [id, p] of state.peers) if (p.screen && p.screen.video) tiles.push({ source: p.screen.video, name: `${nameOf(id)}'s screen`, big: !tiles.some((t) => t.big), contain: true });
-    tiles.push({ source: state.pipe.out, name: state.name });
-    for (const [, p] of state.peers) if (p.video) tiles.push({ source: p.video, name: p.name || "Guest" });
-    state.recorder.frame(tiles);
+    const me = state.me || {};
+    tiles.push({ source: state.pipe.out, name: state.name, initial: initial(state.name), micOff: !state.mic, speaking: !!(me.tile && me.tile.classList.contains("speaking")) });
+    // everyone in the call, even before their video arrives (shown with their initial)
+    for (const [, p] of state.peers) {
+      const name = p.name || "Guest";
+      tiles.push({ source: p.video && p.video.videoWidth ? p.video : null, name, initial: initial(name), micOff: p.mic === false, speaking: !!(p.tile && p.tile.classList.contains("speaking")) });
+    }
+    state.recorder.frame(tiles, now);
     const secs = Math.floor((performance.now() - state.recorder.startedAt) / 1000);
     const t = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
     if ($("#rec-time").textContent !== t) $("#rec-time").textContent = t;
@@ -1708,7 +1714,7 @@ async function toggleRecording() {
     if (blob && blob.size) {
       state.lastRecording = blob;
       const mb = (blob.size / 1e6).toFixed(1);
-      $("#saved-info").textContent = `${mb} MB, kept in this browser for now. If you close it without saving, it's gone.`;
+      $("#saved-info").textContent = `${mb} MB, kept on this device for now. Save it to keep it: it's cleared the next time you open ${CONFIG.name} or record again.`;
       $("#saved-dialog").showModal();
     }
     return;
@@ -1716,10 +1722,10 @@ async function toggleRecording() {
   const d = $("#rec-dialog");
   d.returnValue = "";
   d.showModal();
-  d.addEventListener("close", function onClose() {
+  d.addEventListener("close", async function onClose() {
     d.removeEventListener("close", onClose);
     if (d.returnValue !== "ok") return;
-    if (!state.recorder.start()) { toast("Recording couldn't start."); return; }
+    if (!(await state.recorder.start())) { toast("Recording couldn't start."); return; }
     $("#rec-btn").setAttribute("aria-pressed", "true");
     $("#rec-btn").setAttribute("aria-label", "Stop recording");
     $("#rec-time").hidden = false;
@@ -1921,6 +1927,7 @@ function showCall() {
 async function init() {
   state.audio = new (window.AudioContext || window.webkitAudioContext)();
   state.recorder = new CallRecorder(state.audio);
+  clearOldRecordings(); // a recording left over from an earlier visit (one another tab is writing stays)
   Object.assign(state.pipe.settings, loadFx());
   try { $("#name").value = localStorage.getItem("gr_name") || ""; } catch { /* private */ }
   state.pipe.name = $("#name").value;

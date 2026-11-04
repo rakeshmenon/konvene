@@ -23,7 +23,10 @@ camera ─► vision.js (MediaPipe on the device: face landmarks, person mask)
 | `stickers.js` | Reactions and expression-triggered effects |
 | `backgrounds.js` | Virtual backgrounds drawn in code |
 | `net.js` | Rooms: Trystero (handshake over public Nostr relays) or `?local=1` (handshake over a BroadcastChannel, for testing) |
-| `recorder.js` | Records the call grid and every voice into one file, in the browser |
+| `recorder.js` | Records the call laid out like the call screen, with every voice, into a seekable MP4 (or WebM) written to the browser's private storage on disk while recording |
+| `encode.js` | The parts of Mediabunny the recorder uses; built as its own file under `/vendor` and loaded only when recording starts |
+| `clock.js` | One beat for everything that draws (your video, your own tiles, the recording): animation frames while the tab is visible, a small worker while it's hidden |
+| `presence.js` | "Stepped away": a face, a person in the picture or your voice counts as being there |
 | `quality.js` | Weak connections: a quality tier per person from WebRTC stats, audio-only fallback, encoder settings sized to each viewer's tile |
 | `captions.js` | Live captions with the Web Speech API on the device only (`processLocally`), restricted to desktop Google Chrome 139+ (other Chromium builds can crash when asked); a `Transcriber` per audio track that restarts itself |
 | `sound.js` | Microphone clean-up: browser echo/noise/level control, optional RNNoise in an AudioWorklet at 48 kHz (strong), or none (original sound) |

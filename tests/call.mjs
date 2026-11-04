@@ -315,6 +315,8 @@ await a.click("#rec-btn");
 await a.click("#rec-confirm");
 const aBadge = await a.evaluate(() => ({ hidden: document.querySelector("#rec-badge").hidden, rec: window.__gr.recorder.recording, dlg: document.querySelector("#rec-dialog").open }));
 console.log("      host after confirm:", JSON.stringify(aBadge));
+const recKind = await a.waitForFunction(() => window.__gr.recorder.kind, null, { timeout: 20000 }).then((h) => h.jsonValue()).catch(() => null);
+ok(recKind && recKind !== "mediarecorder", `recording encodes its own file (${recKind})`);
 await b.waitForFunction(() => !document.querySelector("#rec-badge").hidden, null, { timeout: 8000, polling: 250 }).then(() => ok(true, "guest sees the REC badge")).catch(async () => ok(false, "guest sees the REC badge " + JSON.stringify(await b.evaluate(() => ({ hidden: document.querySelector("#rec-badge").hidden, recBy: [...window.__gr.recBy.keys()] })))));
 ok((await b.textContent("#rec-text")).includes("Rakesh"), `badge names who records: ${await b.textContent("#rec-text")}`);
 // a background tab: Chrome stops animation frames there and slows the page's timers. Your video,
@@ -367,6 +369,16 @@ await a.click("#rec-btn");
 await a.waitForSelector("#saved-dialog[open]", { timeout: 10000 });
 const size = await a.evaluate(() => window.__gr.lastRecording && window.__gr.lastRecording.size);
 ok(size > 20000, `recording made on the device (${size} bytes)`);
+// a proper file: it has a length (players can seek), and it was written to disk while recording
+const recFile = await a.evaluate(async () => {
+  const v = document.createElement("video"); v.muted = true; v.src = URL.createObjectURL(window.__gr.lastRecording);
+  await new Promise((r) => { v.onloadedmetadata = r; v.onerror = r; setTimeout(r, 10000); });
+  let onDisk = 0;
+  try { const d = await (await navigator.storage.getDirectory()).getDirectoryHandle("konvene-recordings"); for await (const [, h] of d.entries()) onDisk += (await h.getFile()).size; } catch { /* none */ }
+  return { duration: v.duration, type: window.__gr.lastRecording.type, onDisk, size: window.__gr.lastRecording.size };
+});
+ok(Number.isFinite(recFile.duration) && recFile.duration > 1, `the recording has a length, so it can be seeked (${recFile.duration.toFixed ? recFile.duration.toFixed(1) : recFile.duration} s, ${recFile.type})`);
+ok(recFile.onDisk === recFile.size, `the recording was written to this browser's private storage on disk, not kept in memory (${recFile.onDisk} bytes)`);
 await shot(a, `${OUT}/06-saved.png`);
 await a.click('#saved-dialog button[value="close"]');
 await b.waitForFunction(() => document.querySelector("#rec-badge").hidden, null, { timeout: 8000, polling: 250 }).then(() => ok(true, "badge clears when recording stops")).catch(() => ok(false, "badge clears when recording stops"));

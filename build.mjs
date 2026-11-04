@@ -62,6 +62,23 @@ const hasCustom = existsSync(CUSTOM);
 if (hasCustom) cpSync(CUSTOM, OUT, { recursive: true, filter: (p) => !/(^|\/)(README\.md|logo\.svg)$/.test(p) });
 const customLogo = hasCustom && existsSync(`${CUSTOM}/logo.svg`) ? readFileSync(`${CUSTOM}/logo.svg`, "utf8") : null;
 
+// the recorder's video encoding and file writing (src/encode.js), loaded only when recording starts.
+// The name carries a hash of its contents, so the long cache on /vendor never serves an old copy.
+const enc = await build({
+  plugins: [noTelemetry],
+  entryPoints: { encode: "src/encode.js" },
+  bundle: true,
+  format: "esm",
+  minify: true,
+  target: ["chrome110", "safari16", "firefox115"],
+  outdir: `${OUT}/vendor/mediabunny`,
+  entryNames: "[name]-[hash]",
+  legalComments: "none",
+  metafile: true,
+  footer: { js: "/* Mediabunny, Mozilla Public License 2.0, https://github.com/Vanilagy/mediabunny (see THIRD_PARTY_NOTICES.txt) */" },
+});
+const encodePath = "/" + Object.keys(enc.metafile.outputs)[0].slice(OUT.length + 1).replaceAll("\\", "/");
+
 await build({
   plugins: [noTelemetry],
   entryPoints: ["src/main.js"],
@@ -72,7 +89,8 @@ await build({
   target: ["chrome110", "safari16", "firefox115"],
   outfile: `${OUT}/app.js`,
   legalComments: "none",
-  define: { __KONVENE__: JSON.stringify(app) },
+  define: { __KONVENE__: JSON.stringify(app), __ENCODE_JS__: JSON.stringify(encodePath) },
+  external: ["/vendor/*"], // loaded at run time from this site, not bundled
   // the open-source licences travel inside the code everyone downloads (invisible on the page)
   footer: { js: "/*\n" + readFileSync("THIRD_PARTY_NOTICES.txt", "utf8").replaceAll("*/", "* /") + "\n*/" },
 });

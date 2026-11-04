@@ -4,6 +4,7 @@ All notable changes to Konvene. The format follows [Keep a Changelog](https://ke
 
 ## Unreleased
 
+- Changed: recordings are a proper MP4 (H.264 and AAC) with a length and a seek bar, encoded at constant quality so still scenes cost few bytes; browsers without MP4 encoding make a seekable WebM. They are written to the browser's private storage on disk while recording instead of being held in memory, and look like the call screen (1080p, the call's colours and font, names centred in their labels, the speaking ring, a muted icon, initials for people without video). Mediabunny does the encoding and file writing and is loaded only when someone records.
 - Fixed: in a background tab (looking at another tab, or with the call in picture-in-picture) your video reached others at about one frame a second, and recordings froze, because Chrome slows a hidden tab's timers. One shared clock (`src/clock.js`) now drives your video, your own tiles and the recording, from a small worker while the tab is hidden.
 - Fixed: your own tile stopped for the rest of the call after the picture-in-picture window closed.
 - Changed: "Stepped away" no longer triggers when you turn your head or look at another screen. A person in the picture (from the cutout model) or your voice counts as being there, and the wait is 30 seconds instead of 8 (`src/presence.js`).

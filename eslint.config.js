@@ -7,7 +7,7 @@ export default [
   js.configs.recommended,
   {
     files: ["src/**/*.js"],
-    languageOptions: { ecmaVersion: 2023, sourceType: "module", globals: { ...globals.browser, __KONVENE__: "readonly" } },
+    languageOptions: { ecmaVersion: 2023, sourceType: "module", globals: { ...globals.browser, __KONVENE__: "readonly", __ENCODE_JS__: "readonly" } },
   },
   {
     files: ["*.js", "*.mjs", "scripts/**", "server/**", "netlify/**", "api/**", "functions/**", "tests/**"],
